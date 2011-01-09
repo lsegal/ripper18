@@ -8,7 +8,7 @@
 # For details of Ruby License, see ruby/COPYING.
 #
 
-require File.dirname(__FILE__) + '/../../ripper.so'
+require File.dirname(__FILE__) + '/../../ext/ripper.so'
 
 class Ripper
 

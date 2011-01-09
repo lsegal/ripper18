@@ -15,6 +15,7 @@
 #define YYERROR_VERBOSE 1
 #define YYSTACK_USE_ALLOCA 0
 
+#include "backports.h"
 #include "ruby/ruby.h"
 #include "ruby/st.h"
 #include "ruby/encoding.h"
@@ -238,17 +239,6 @@ struct parser_params {
 
     int parser_yydebug;
 
-#ifndef RIPPER
-    /* Ruby core only */
-    NODE *parser_eval_tree_begin;
-    NODE *parser_eval_tree;
-    VALUE debug_lines;
-    VALUE coverage;
-    int nerr;
-
-    token_info *parser_token_info;
-#else
-    /* Ripper only */
     VALUE parser_ruby_sourcefile_string;
     const char *tokp;
     VALUE delayed;
@@ -259,7 +249,6 @@ struct parser_params {
     VALUE result;
     VALUE parsing_thread;
     int toplevel_p;
-#endif
 };
 
 #define UTF8_ENC() (parser->utf8 ? parser->utf8 : \
@@ -625,11 +614,11 @@ static void token_info_pop(struct parser_params*, const char *token);
     const struct vtable *vars;
 }
 
-/*
+/*%%%*/
 %token
-*/
+/*%
 %token <val>
-
+%*/
 	keyword_class
 	keyword_module
 	keyword_def
@@ -680,37 +669,37 @@ static void token_info_pop(struct parser_params*, const char *token);
 	keyword__FILE__
 	keyword__ENCODING__
 
-%token <val>   tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
-%token <val> tINTEGER tFLOAT tSTRING_CONTENT tCHAR
-%token <val> tNTH_REF tBACK_REF
-%token <val>  tREGEXP_END
+%token <id>   tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
+%token <node> tINTEGER tFLOAT tSTRING_CONTENT tCHAR
+%token <node> tNTH_REF tBACK_REF
+%token <num>  tREGEXP_END
 
-%type <val> singleton strings string string1 xstring regexp
-%type <val> string_contents xstring_contents regexp_contents string_content
-%type <val> words qwords word_list qword_list word
-%type <val> literal numeric dsym cpath
-%type <val> top_compstmt top_stmts top_stmt
-%type <val> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
-%type <val> expr_value arg_value primary_value
-%type <val> if_tail opt_else case_body cases opt_rescue exc_list exc_var opt_ensure
-%type <val> args call_args opt_call_args
-%type <val> paren_args opt_paren_args
-%type <val> command_args aref_args opt_block_arg block_arg var_ref var_lhs
-%type <val> mrhs superclass block_call block_command
-%type <val> f_block_optarg f_block_opt
-%type <val> f_arglist f_args f_arg f_arg_item f_optarg f_marg f_marg_list f_margs
-%type <val> assoc_list assocs assoc undef_list backref string_dvar for_var
-%type <val> block_param opt_block_param block_param_def f_opt
-%type <val> bv_decls opt_bv_decl bvar
-%type <val> lambda f_larglist lambda_body
-%type <val> brace_block cmd_brace_block do_block lhs none fitem
-%type <val> mlhs mlhs_head mlhs_basic mlhs_item mlhs_node mlhs_post mlhs_inner
-%type <val>   fsym variable sym symbol operation operation2 operation3
-%type <val>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
-/*
-*/
+%type <node> singleton strings string string1 xstring regexp
+%type <node> string_contents xstring_contents regexp_contents string_content
+%type <node> words qwords word_list qword_list word
+%type <node> literal numeric dsym cpath
+%type <node> top_compstmt top_stmts top_stmt
+%type <node> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
+%type <node> expr_value arg_value primary_value
+%type <node> if_tail opt_else case_body cases opt_rescue exc_list exc_var opt_ensure
+%type <node> args call_args opt_call_args
+%type <node> paren_args opt_paren_args
+%type <node> command_args aref_args opt_block_arg block_arg var_ref var_lhs
+%type <node> mrhs superclass block_call block_command
+%type <node> f_block_optarg f_block_opt
+%type <node> f_arglist f_args f_arg f_arg_item f_optarg f_marg f_marg_list f_margs
+%type <node> assoc_list assocs assoc undef_list backref string_dvar for_var
+%type <node> block_param opt_block_param block_param_def f_opt
+%type <node> bv_decls opt_bv_decl bvar
+%type <node> lambda f_larglist lambda_body
+%type <node> brace_block cmd_brace_block do_block lhs none fitem
+%type <node> mlhs mlhs_head mlhs_basic mlhs_item mlhs_node mlhs_post mlhs_inner
+%type <id>   fsym variable sym symbol operation operation2 operation3
+%type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
+/*%%%*/
+/*%
 %type <val> program reswords then do dot_or_colon
-
+%*/
 %token tUPLUS		/* unary+ */
 %token tUMINUS		/* unary- */
 %token tPOW		/* ** */
@@ -727,7 +716,7 @@ static void token_info_pop(struct parser_params*, const char *token);
 %token tLSHFT tRSHFT	/* << and >> */
 %token tCOLON2		/* :: */
 %token tCOLON3		/* :: at EXPR_BEG */
-%token <val> tOP_ASGN	/* +=, -=  etc. */
+%token <id> tOP_ASGN	/* +=, -=  etc. */
 %token tASSOC		/* => */
 %token tLPAREN		/* ( */
 %token tLPAREN_ARG	/* ( */
@@ -785,15 +774,15 @@ static void token_info_pop(struct parser_params*, const char *token);
 %%
 program		:  {
 			lex_state = EXPR_BEG;
-#if 0
+		    /*%%%*/
 			local_push(compile_for_eval || rb_parse_in_main());
-#endif
+		    /*%
 			local_push(0);
-
+		    %*/
 		    }
 		  top_compstmt
 		    {
-#if 0
+		    /*%%%*/
 			if ($2 && !compile_for_eval) {
 			    /* last expression should not be void */
 			    if (nd_type($2) != NODE_BLOCK) void_expr($2);
@@ -806,49 +795,49 @@ program		:  {
 			    }
 			}
 			ruby_eval_tree = NEW_SCOPE(0, block_append(ruby_eval_tree, $2));
-#endif
+		    /*%
 			$$ = $2;
 			parser->result = dispatch1(program, $$);
-
+		    %*/
 			local_pop();
 		    }
 		;
 
 top_compstmt	: top_stmts opt_terms
 		    {
-#if 0
+		    /*%%%*/
 			void_stmts($1);
 			fixup_nodes(&deferred_nodes);
-#endif
-
+		    /*%
+		    %*/
 			$$ = $1;
 		    }
 		;
 
 top_stmts	: none
                     {
-#if 0
+		    /*%%%*/
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new),
 						  dispatch0(void_stmt));
-
+		    %*/
 		    }
 		| top_stmt
 		    {
-#if 0
+		    /*%%%*/
 			$$ = newline_node($1);
-#endif
+		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new), $1);
-
+		    %*/
 		    }
 		| top_stmts terms top_stmt
 		    {
-#if 0
+		    /*%%%*/
 			$$ = block_append($1, newline_node($3));
-#endif
+		    /*%
 			$$ = dispatch2(stmts_add, $1, $3);
-
+		    %*/
 		    }
 		| error top_stmt
 		    {
@@ -862,22 +851,22 @@ top_stmt	: stmt
 			if (in_def || in_single) {
 			    yyerror("BEGIN in method");
 			}
-#if 0
+		    /*%%%*/
 			/* local_push(0); */
-#endif
-
+		    /*%
+		    %*/
 		    }
 		  '{' top_compstmt '}'
 		    {
-#if 0
+		    /*%%%*/
 			ruby_eval_tree_begin = block_append(ruby_eval_tree_begin,
 							    $4);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch1(BEGIN, $4);
-
+		    %*/
 		    }
 		;
 
@@ -886,7 +875,7 @@ bodystmt	: compstmt
 		  opt_else
 		  opt_ensure
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $1;
 			if ($2) {
 			    $$ = NEW_RESCUE($1, $2, $3);
@@ -904,51 +893,51 @@ bodystmt	: compstmt
 			    }
 			}
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch4(bodystmt,
 				       escape_Qundef($1),
 				       escape_Qundef($2),
 				       escape_Qundef($3),
 				       escape_Qundef($4));
-
+		    %*/
 		    }
 		;
 
 compstmt	: stmts opt_terms
 		    {
-#if 0
+		    /*%%%*/
 			void_stmts($1);
 			fixup_nodes(&deferred_nodes);
-#endif
-
+		    /*%
+		    %*/
 			$$ = $1;
 		    }
 		;
 
 stmts		: none
                     {
-#if 0
+		    /*%%%*/
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new),
 						  dispatch0(void_stmt));
-
+		    %*/
 		    }
 		| stmt
 		    {
-#if 0
+		    /*%%%*/
 			$$ = newline_node($1);
-#endif
+		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new), $1);
-
+		    %*/
 		    }
 		| stmts terms stmt
 		    {
-#if 0
+		    /*%%%*/
 			$$ = block_append($1, newline_node($3));
-#endif
+		    /*%
 			$$ = dispatch2(stmts_add, $1, $3);
-
+		    %*/
 		    }
 		| error stmt
 		    {
@@ -958,136 +947,136 @@ stmts		: none
 
 stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_ALIAS($2, $4);
-#endif
+		    /*%
 			$$ = dispatch2(alias, $2, $4);
-
+		    %*/
 		    }
 		| keyword_alias tGVAR tGVAR
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_VALIAS($2, $3);
-#endif
+		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
-
+		    %*/
 		    }
 		| keyword_alias tGVAR tBACK_REF
 		    {
-#if 0
+		    /*%%%*/
 			char buf[2];
 			buf[0] = '$';
 			buf[1] = (char)$3->nd_nth;
 			$$ = NEW_VALIAS($2, rb_intern2(buf, 2));
-#endif
+		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
-
+		    %*/
 		    }
 		| keyword_alias tGVAR tNTH_REF
 		    {
-#if 0
+		    /*%%%*/
 			yyerror("can't make alias for the number variables");
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
 			$$ = dispatch1(alias_error, $$);
-
+		    %*/
 		    }
 		| keyword_undef undef_list
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(undef, $2);
-
+		    %*/
 		    }
 		| stmt modifier_if expr_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_IF(cond($3), remove_begin($1), 0);
 			fixpos($$, $3);
-#endif
+		    /*%
 			$$ = dispatch2(if_mod, $3, $1);
-
+		    %*/
 		    }
 		| stmt modifier_unless expr_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_UNLESS(cond($3), remove_begin($1), 0);
 			fixpos($$, $3);
-#endif
+		    /*%
 			$$ = dispatch2(unless_mod, $3, $1);
-
+		    %*/
 		    }
 		| stmt modifier_while expr_value
 		    {
-#if 0
+		    /*%%%*/
 			if ($1 && nd_type($1) == NODE_BEGIN) {
 			    $$ = NEW_WHILE(cond($3), $1->nd_body, 0);
 			}
 			else {
 			    $$ = NEW_WHILE(cond($3), $1, 1);
 			}
-#endif
+		    /*%
 			$$ = dispatch2(while_mod, $3, $1);
-
+		    %*/
 		    }
 		| stmt modifier_until expr_value
 		    {
-#if 0
+		    /*%%%*/
 			if ($1 && nd_type($1) == NODE_BEGIN) {
 			    $$ = NEW_UNTIL(cond($3), $1->nd_body, 0);
 			}
 			else {
 			    $$ = NEW_UNTIL(cond($3), $1, 1);
 			}
-#endif
+		    /*%
 			$$ = dispatch2(until_mod, $3, $1);
-
+		    %*/
 		    }
 		| stmt modifier_rescue stmt
 		    {
-#if 0
+		    /*%%%*/
 			NODE *resq = NEW_RESBODY(0, remove_begin($3), 0);
 			$$ = NEW_RESCUE(remove_begin($1), resq, 0);
-#endif
+		    /*%
 			$$ = dispatch2(rescue_mod, $3, $1);
-
+		    %*/
 		    }
 		| keyword_END '{' compstmt '}'
 		    {
 			if (in_def || in_single) {
 			    rb_warn0("END in method; use at_exit");
 			}
-#if 0
+		    /*%%%*/
 			$$ = NEW_POSTEXE(NEW_NODE(
 			    NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */));
-#endif
+		    /*%
 			$$ = dispatch1(END, $3);
-
+		    %*/
 		    }
 		| lhs '=' command_call
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($3);
 			$$ = node_assign($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(assign, $1, $3);
-
+		    %*/
 		    }
 		| mlhs '=' command_call
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($3);
 			$1->nd_value = $3;
 			$$ = $1;
-#endif
+		    /*%
 			$$ = dispatch2(massign, $1, $3);
-
+		    %*/
 		    }
 		| var_lhs tOP_ASGN command_call
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($3);
 			if ($1) {
 			    ID vid = $1->nd_vid;
@@ -1110,13 +1099,13 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 			else {
 			    $$ = NEW_BEGIN(0);
 			}
-#endif
+		    /*%
 			$$ = dispatch3(opassign, $1, $2, $3);
-
+		    %*/
 		    }
 		| primary_value '[' opt_call_args rbracket tOP_ASGN command_call
 		    {
-#if 0
+		    /*%%%*/
 			NODE *args;
 
 			value_expr($6);
@@ -1130,14 +1119,14 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 			}
 			$$ = NEW_OP_ASGN1($1, $5, args);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch2(aref_field, $1, escape_Qundef($3));
 			$$ = dispatch3(opassign, $$, $5, $6);
-
+		    %*/
 		    }
 		| primary_value '.' tIDENTIFIER tOP_ASGN command_call
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($5);
 			if ($4 == tOROP) {
 			    $4 = 0;
@@ -1147,14 +1136,14 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 			}
 			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
 			$$ = dispatch3(opassign, $$, $4, $5);
-
+		    %*/
 		    }
 		| primary_value '.' tCONSTANT tOP_ASGN command_call
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($5);
 			if ($4 == tOROP) {
 			    $4 = 0;
@@ -1164,10 +1153,10 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 			}
 			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
 			$$ = dispatch3(opassign, $$, $4, $5);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN command_call
 		    {
@@ -1176,7 +1165,7 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 		    }
 		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN command_call
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($5);
 			if ($4 == tOROP) {
 			    $4 = 0;
@@ -1186,47 +1175,47 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 			}
 			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch3(field, $1, ripper_intern("::"), $3);
 			$$ = dispatch3(opassign, $$, $4, $5);
-
+		    %*/
 		    }
 		| backref tOP_ASGN command_call
 		    {
-#if 0
+		    /*%%%*/
 			rb_backref_error($1);
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch2(assign, dispatch1(var_field, $1), $3);
 			$$ = dispatch1(assign_error, $$);
-
+		    %*/
 		    }
 		| lhs '=' mrhs
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($3);
 			$$ = node_assign($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(assign, $1, $3);
-
+		    %*/
 		    }
 		| mlhs '=' arg_value
 		    {
-#if 0
+		    /*%%%*/
 			$1->nd_value = $3;
 			$$ = $1;
-#endif
+		    /*%
 			$$ = dispatch2(massign, $1, $3);
-
+		    %*/
 		    }
 		| mlhs '=' mrhs
 		    {
-#if 0
+		    /*%%%*/
 			$1->nd_value = $3;
 			$$ = $1;
-#endif
+		    /*%
 			$$ = dispatch2(massign, $1, $3);
-
+		    %*/
 		    }
 		| expr
 		;
@@ -1234,48 +1223,48 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 expr		: command_call
 		| expr keyword_and expr
 		    {
-#if 0
+		    /*%%%*/
 			$$ = logop(NODE_AND, $1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("and"), $3);
-
+		    %*/
 		    }
 		| expr keyword_or expr
 		    {
-#if 0
+		    /*%%%*/
 			$$ = logop(NODE_OR, $1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("or"), $3);
-
+		    %*/
 		    }
 		| keyword_not opt_nl expr
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_uni_op(cond($3), '!');
-#endif
+		    /*%
 			$$ = dispatch2(unary, ripper_intern("not"), $3);
-
+		    %*/
 		    }
 		| '!' command_call
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_uni_op(cond($2), '!');
-#endif
+		    /*%
 			$$ = dispatch2(unary, ripper_id2sym('!'), $2);
-
+		    %*/
 		    }
 		| arg
 		;
 
 expr_value	: expr
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($1);
 			$$ = $1;
 		        if (!$$) $$ = NEW_NIL();
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		;
 
@@ -1286,302 +1275,302 @@ command_call	: command
 block_command	: block_call
 		| block_call '.' operation2 command_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, $4);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
 			$$ = method_arg($$, $4);
-
+		    %*/
 		    }
 		| block_call tCOLON2 operation2 command_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, $4);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_intern("::"), $3);
 			$$ = method_arg($$, $4);
-
+		    %*/
 		    }
 		;
 
 cmd_brace_block	: tLBRACE_ARG
 		    {
 			$<vars>1 = dyna_push();
-#if 0
+		    /*%%%*/
 			$<num>$ = ruby_sourceline;
-#endif
-
+		    /*%
+		    %*/
 		    }
 		  opt_block_param
 		  compstmt
 		  '}'
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_ITER($3,$4);
 			nd_set_line($$, $<num>2);
-#endif
+		    /*%
 			$$ = dispatch2(brace_block, escape_Qundef($3), $4);
-
+		    %*/
 			dyna_pop($<vars>1);
 		    }
 		;
 
 command		: operation command_args       %prec tLOWEST
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_FCALL($1, $2);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch2(command, $1, $2);
-
+		    %*/
 		    }
 		| operation command_args cmd_brace_block
 		    {
-#if 0
+		    /*%%%*/
 			block_dup_check($2,$3);
 		        $3->nd_iter = NEW_FCALL($1, $2);
 			$$ = $3;
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch2(command, $1, $2);
 			$$ = method_add_block($$, $3);
-
+		    %*/
 		    }
 		| primary_value '.' operation2 command_args	%prec tLOWEST
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, $4);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
-
+		    %*/
 		    }
 		| primary_value '.' operation2 command_args cmd_brace_block
 		    {
-#if 0
+		    /*%%%*/
 			block_dup_check($4,$5);
 		        $5->nd_iter = NEW_CALL($1, $3, $4);
 			$$ = $5;
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
 			$$ = method_add_block($$, $5);
-
+		    %*/
 		   }
 		| primary_value tCOLON2 operation2 command_args	%prec tLOWEST
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, $4);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch4(command_call, $1, ripper_intern("::"), $3, $4);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 operation2 command_args cmd_brace_block
 		    {
-#if 0
+		    /*%%%*/
 			block_dup_check($4,$5);
 		        $5->nd_iter = NEW_CALL($1, $3, $4);
 			$$ = $5;
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch4(command_call, $1, ripper_intern("::"), $3, $4);
 			$$ = method_add_block($$, $5);
-
+		    %*/
 		   }
 		| keyword_super command_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_SUPER($2);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch1(super, $2);
-
+		    %*/
 		    }
 		| keyword_yield command_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_yield($2);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch1(yield, $2);
-
+		    %*/
 		    }
 		| keyword_return call_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_RETURN(ret_args($2));
-#endif
+		    /*%
 			$$ = dispatch1(return, $2);
-
+		    %*/
 		    }
 		| keyword_break call_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_BREAK(ret_args($2));
-#endif
+		    /*%
 			$$ = dispatch1(break, $2);
-
+		    %*/
 		    }
 		| keyword_next call_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_NEXT(ret_args($2));
-#endif
+		    /*%
 			$$ = dispatch1(next, $2);
-
+		    %*/
 		    }
 		;
 
 mlhs		: mlhs_basic
 		| tLPAREN mlhs_inner rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(mlhs_paren, $2);
-
+		    %*/
 		    }
 		;
 
 mlhs_inner	: mlhs_basic
 		| tLPAREN mlhs_inner rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(NEW_LIST($2), 0);
-#endif
+		    /*%
 			$$ = dispatch1(mlhs_paren, $2);
-
+		    %*/
 		    }
 		;
 
 mlhs_basic	: mlhs_head
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, 0);
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		| mlhs_head mlhs_item
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(list_append($1,$2), 0);
-#endif
+		    /*%
 			$$ = mlhs_add($1, $2);
-
+		    %*/
 		    }
 		| mlhs_head tSTAR mlhs_node
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, $3);
-#endif
+		    /*%
 			$$ = mlhs_add_star($1, $3);
-
+		    %*/
 		    }
 		| mlhs_head tSTAR mlhs_node ',' mlhs_post
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG($3,$5));
-#endif
+		    /*%
 			$1 = mlhs_add_star($1, $3);
 			$$ = mlhs_add($1, $5);
-
+		    %*/
 		    }
 		| mlhs_head tSTAR
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, -1);
-#endif
+		    /*%
 			$$ = mlhs_add_star($1, Qnil);
-
+		    %*/
 		    }
 		| mlhs_head tSTAR ',' mlhs_post
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG(-1, $4));
-#endif
+		    /*%
 			$$ = mlhs_add_star($1, Qnil);
-
+		    %*/
 		    }
 		| tSTAR mlhs_node
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(0, $2);
-#endif
+		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $2);
-
+		    %*/
 		    }
 		| tSTAR mlhs_node ',' mlhs_post
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG($2,$4));
-#endif
+		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $2);
-
+		    %*/
 		    }
 		| tSTAR
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(0, -1);
-#endif
+		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
-
+		    %*/
 		    }
 		| tSTAR ',' mlhs_post
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG(-1, $3));
-#endif
+		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
-
+		    %*/
 		    }
 		;
 
 mlhs_item	: mlhs_node
 		| tLPAREN mlhs_inner rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(mlhs_paren, $2);
-
+		    %*/
 		    }
 		;
 
 mlhs_head	: mlhs_item ','
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIST($1);
-#endif
+		    /*%
 			$$ = mlhs_add(mlhs_new(), $1);
-
+		    %*/
 		    }
 		| mlhs_head mlhs_item ','
 		    {
-#if 0
+		    /*%%%*/
 			$$ = list_append($1, $2);
-#endif
+		    /*%
 			$$ = mlhs_add($1, $2);
-
+		    %*/
 		    }
 		;
 
 mlhs_post	: mlhs_item
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIST($1);
-#endif
+		    /*%
 			$$ = mlhs_add(mlhs_new(), $1);
-
+		    %*/
 		    }
 		| mlhs_post ',' mlhs_item
 		    {
-#if 0
+		    /*%%%*/
 			$$ = list_append($1, $3);
-#endif
+		    /*%
 			$$ = mlhs_add($1, $3);
-
+		    %*/
 		    }
 		;
 
@@ -1591,182 +1580,182 @@ mlhs_node	: variable
 		    }
 		| primary_value '[' opt_call_args rbracket
 		    {
-#if 0
+		    /*%%%*/
 			$$ = aryset($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(aref_field, $1, escape_Qundef($3));
-
+		    %*/
 		    }
 		| primary_value '.' tIDENTIFIER
 		    {
-#if 0
+		    /*%%%*/
 			$$ = attrset($1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
-#if 0
+		    /*%%%*/
 			$$ = attrset($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(const_path_field, $1, $3);
-
+		    %*/
 		    }
 		| primary_value '.' tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			$$ = attrset($1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			if (in_def || in_single)
 			    yyerror("dynamic constant assignment");
 			$$ = NEW_CDECL(0, 0, NEW_COLON2($1, $3));
-#endif
+		    /*%
 			if (in_def || in_single)
 			    yyerror("dynamic constant assignment");
 			$$ = dispatch2(const_path_field, $1, $3);
-
+		    %*/
 		    }
 		| tCOLON3 tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			if (in_def || in_single)
 			    yyerror("dynamic constant assignment");
 			$$ = NEW_CDECL(0, 0, NEW_COLON3($2));
-#endif
+		    /*%
 			$$ = dispatch1(top_const_field, $2);
-
+		    %*/
 		    }
 		| backref
 		    {
-#if 0
+		    /*%%%*/
 			rb_backref_error($1);
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch1(var_field, $1);
 			$$ = dispatch1(assign_error, $$);
-
+		    %*/
 		    }
 		;
 
 lhs		: variable
 		    {
 			$$ = assignable($1, 0);
-#if 0
+		    /*%%%*/
 			if (!$$) $$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch1(var_field, $$);
-
+		    %*/
 		    }
 		| primary_value '[' opt_call_args rbracket
 		    {
-#if 0
+		    /*%%%*/
 			$$ = aryset($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(aref_field, $1, escape_Qundef($3));
-
+		    %*/
 		    }
 		| primary_value '.' tIDENTIFIER
 		    {
-#if 0
+		    /*%%%*/
 			$$ = attrset($1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
-#if 0
+		    /*%%%*/
 			$$ = attrset($1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(field, $1, ripper_intern("::"), $3);
-
+		    %*/
 		    }
 		| primary_value '.' tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			$$ = attrset($1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			if (in_def || in_single)
 			    yyerror("dynamic constant assignment");
 			$$ = NEW_CDECL(0, 0, NEW_COLON2($1, $3));
-#endif
+		    /*%
 			$$ = dispatch2(const_path_field, $1, $3);
 			if (in_def || in_single) {
 			    $$ = dispatch1(assign_error, $$);
 			}
-
+		    %*/
 		    }
 		| tCOLON3 tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			if (in_def || in_single)
 			    yyerror("dynamic constant assignment");
 			$$ = NEW_CDECL(0, 0, NEW_COLON3($2));
-#endif
+		    /*%
 			$$ = dispatch1(top_const_field, $2);
 			if (in_def || in_single) {
 			    $$ = dispatch1(assign_error, $$);
 			}
-
+		    %*/
 		    }
 		| backref
 		    {
-#if 0
+		    /*%%%*/
 			rb_backref_error($1);
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch1(assign_error, $1);
-
+		    %*/
 		    }
 		;
 
 cname		: tIDENTIFIER
 		    {
-#if 0
+		    /*%%%*/
 			yyerror("class/module name must be CONSTANT");
-#endif
+		    /*%
 			$$ = dispatch1(class_name_error, $1);
-
+		    %*/
 		    }
 		| tCONSTANT
 		;
 
 cpath		: tCOLON3 cname
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_COLON3($2);
-#endif
+		    /*%
 			$$ = dispatch1(top_const_ref, $2);
-
+		    %*/
 		    }
 		| cname
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_COLON2(0, $$);
-#endif
+		    /*%
 			$$ = dispatch1(const_ref, $1);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 cname
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_COLON2($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(const_path_ref, $1, $3);
-
+		    %*/
 		    }
 		;
 
@@ -1781,11 +1770,11 @@ fname		: tIDENTIFIER
 		| reswords
 		    {
 			lex_state = EXPR_ENDFN;
-#if 0
+		    /*%%%*/
 			$$ = $<id>1;
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		;
 
@@ -1795,30 +1784,30 @@ fsym		: fname
 
 fitem		: fsym
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIT(ID2SYM($1));
-#endif
+		    /*%
 			$$ = dispatch1(symbol_literal, $1);
-
+		    %*/
 		    }
 		| dsym
 		;
 
 undef_list	: fitem
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_UNDEF($1);
-#endif
+		    /*%
 			$$ = rb_ary_new3(1, $1);
-
+		    %*/
 		    }
 		| undef_list ',' {lex_state = EXPR_FNAME;} fitem
 		    {
-#if 0
+		    /*%%%*/
 			$$ = block_append($1, NEW_UNDEF($4));
-#endif
+		    /*%
 			rb_ary_push($1, $4);
-
+		    %*/
 		    }
 		;
 
@@ -1869,26 +1858,26 @@ reswords	: keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
 
 arg		: lhs '=' arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($3);
 			$$ = node_assign($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(assign, $1, $3);
-
+		    %*/
 		    }
 		| lhs '=' arg modifier_rescue arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($3);
 		        $3 = NEW_RESCUE($3, NEW_RESBODY(0,$5,0), 0);
 			$$ = node_assign($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(assign, $1, dispatch2(rescue_mod, $3, $5));
-
+		    %*/
 		    }
 		| var_lhs tOP_ASGN arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($3);
 			if ($1) {
 			    ID vid = $1->nd_vid;
@@ -1911,13 +1900,13 @@ arg		: lhs '=' arg
 			else {
 			    $$ = NEW_BEGIN(0);
 			}
-#endif
+		    /*%
 			$$ = dispatch3(opassign, $1, $2, $3);
-
+		    %*/
 		    }
 		| var_lhs tOP_ASGN arg modifier_rescue arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($3);
 		        $3 = NEW_RESCUE($3, NEW_RESBODY(0,$5,0), 0);
 			if ($1) {
@@ -1941,14 +1930,14 @@ arg		: lhs '=' arg
 			else {
 			    $$ = NEW_BEGIN(0);
 			}
-#endif
+		    /*%
 			$3 = dispatch2(rescue_mod, $3, $5);
 			$$ = dispatch3(opassign, $1, $2, $3);
-
+		    %*/
 		    }
 		| primary_value '[' opt_call_args rbracket tOP_ASGN arg
 		    {
-#if 0
+		    /*%%%*/
 			NODE *args;
 
 			value_expr($6);
@@ -1967,14 +1956,14 @@ arg		: lhs '=' arg
 			}
 			$$ = NEW_OP_ASGN1($1, $5, args);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$1 = dispatch2(aref_field, $1, escape_Qundef($3));
 			$$ = dispatch3(opassign, $1, $5, $6);
-
+		    %*/
 		    }
 		| primary_value '.' tIDENTIFIER tOP_ASGN arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($5);
 			if ($4 == tOROP) {
 			    $4 = 0;
@@ -1984,14 +1973,14 @@ arg		: lhs '=' arg
 			}
 			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$1 = dispatch3(field, $1, ripper_id2sym('.'), $3);
 			$$ = dispatch3(opassign, $1, $4, $5);
-
+		    %*/
 		    }
 		| primary_value '.' tCONSTANT tOP_ASGN arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($5);
 			if ($4 == tOROP) {
 			    $4 = 0;
@@ -2001,14 +1990,14 @@ arg		: lhs '=' arg
 			}
 			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$1 = dispatch3(field, $1, ripper_id2sym('.'), $3);
 			$$ = dispatch3(opassign, $1, $4, $5);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($5);
 			if ($4 == tOROP) {
 			    $4 = 0;
@@ -2018,47 +2007,47 @@ arg		: lhs '=' arg
 			}
 			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$1 = dispatch3(field, $1, ripper_intern("::"), $3);
 			$$ = dispatch3(opassign, $1, $4, $5);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN arg
 		    {
-#if 0
+		    /*%%%*/
 			yyerror("constant re-assignment");
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch2(const_path_field, $1, $3);
 			$$ = dispatch3(opassign, $$, $4, $5);
 			$$ = dispatch1(assign_error, $$);
-
+		    %*/
 		    }
 		| tCOLON3 tCONSTANT tOP_ASGN arg
 		    {
-#if 0
+		    /*%%%*/
 			yyerror("constant re-assignment");
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch1(top_const_field, $2);
 			$$ = dispatch3(opassign, $$, $3, $4);
 			$$ = dispatch1(assign_error, $$);
-
+		    %*/
 		    }
 		| backref tOP_ASGN arg
 		    {
-#if 0
+		    /*%%%*/
 			rb_backref_error($1);
 			$$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch1(var_field, $1);
 			$$ = dispatch3(opassign, $$, $2, $3);
 			$$ = dispatch1(assign_error, $$);
-
+		    %*/
 		    }
 		| arg tDOT2 arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($1);
 			value_expr($3);
 			$$ = NEW_DOT2($1, $3);
@@ -2066,13 +2055,13 @@ arg		: lhs '=' arg
 			    nd_type($3) == NODE_LIT && FIXNUM_P($3->nd_lit)) {
 			    deferred_nodes = list_append(deferred_nodes, $$);
 			}
-#endif
+		    /*%
 			$$ = dispatch2(dot2, $1, $3);
-
+		    %*/
 		    }
 		| arg tDOT3 arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($1);
 			value_expr($3);
 			$$ = NEW_DOT3($1, $3);
@@ -2080,266 +2069,266 @@ arg		: lhs '=' arg
 			    nd_type($3) == NODE_LIT && FIXNUM_P($3->nd_lit)) {
 			    deferred_nodes = list_append(deferred_nodes, $$);
 			}
-#endif
+		    /*%
 			$$ = dispatch2(dot3, $1, $3);
-
+		    %*/
 		    }
 		| arg '+' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '+', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('+'), $3);
-
+		    %*/
 		    }
 		| arg '-' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '-', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('-'), $3);
-
+		    %*/
 		    }
 		| arg '*' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '*', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('*'), $3);
-
+		    %*/
 		    }
 		| arg '/' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '/', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('/'), $3);
-
+		    %*/
 		    }
 		| arg '%' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '%', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('%'), $3);
-
+		    %*/
 		    }
 		| arg tPOW arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tPOW, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("**"), $3);
-
+		    %*/
 		    }
 		| tUMINUS_NUM tINTEGER tPOW arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL(call_bin_op($2, tPOW, $4), tUMINUS, 0);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $2, ripper_intern("**"), $4);
 			$$ = dispatch2(unary, ripper_intern("-@"), $$);
-
+		    %*/
 		    }
 		| tUMINUS_NUM tFLOAT tPOW arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL(call_bin_op($2, tPOW, $4), tUMINUS, 0);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $2, ripper_intern("**"), $4);
 			$$ = dispatch2(unary, ripper_intern("-@"), $$);
-
+		    %*/
 		    }
 		| tUPLUS arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_uni_op($2, tUPLUS);
-#endif
+		    /*%
 			$$ = dispatch2(unary, ripper_intern("+@"), $2);
-
+		    %*/
 		    }
 		| tUMINUS arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_uni_op($2, tUMINUS);
-#endif
+		    /*%
 			$$ = dispatch2(unary, ripper_intern("-@"), $2);
-
+		    %*/
 		    }
 		| arg '|' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '|', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('|'), $3);
-
+		    %*/
 		    }
 		| arg '^' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '^', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('^'), $3);
-
+		    %*/
 		    }
 		| arg '&' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '&', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('&'), $3);
-
+		    %*/
 		    }
 		| arg tCMP arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tCMP, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("<=>"), $3);
-
+		    %*/
 		    }
 		| arg '>' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '>', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('>'), $3);
-
+		    %*/
 		    }
 		| arg tGEQ arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tGEQ, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern(">="), $3);
-
+		    %*/
 		    }
 		| arg '<' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, '<', $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ID2SYM('<'), $3);
-
+		    %*/
 		    }
 		| arg tLEQ arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tLEQ, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("<="), $3);
-
+		    %*/
 		    }
 		| arg tEQ arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tEQ, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("=="), $3);
-
+		    %*/
 		    }
 		| arg tEQQ arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tEQQ, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("==="), $3);
-
+		    %*/
 		    }
 		| arg tNEQ arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tNEQ, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("!="), $3);
-
+		    %*/
 		    }
 		| arg tMATCH arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = match_op($1, $3);
                         if (nd_type($1) == NODE_LIT && TYPE($1->nd_lit) == T_REGEXP) {
                             $$ = reg_named_capture_assign($1->nd_lit, $$);
                         }
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("=~"), $3);
-
+		    %*/
 		    }
 		| arg tNMATCH arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tNMATCH, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("!~"), $3);
-
+		    %*/
 		    }
 		| '!' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_uni_op(cond($2), '!');
-#endif
+		    /*%
 			$$ = dispatch2(unary, ID2SYM('!'), $2);
-
+		    %*/
 		    }
 		| '~' arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_uni_op($2, '~');
-#endif
+		    /*%
 			$$ = dispatch2(unary, ID2SYM('~'), $2);
-
+		    %*/
 		    }
 		| arg tLSHFT arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tLSHFT, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("<<"), $3);
-
+		    %*/
 		    }
 		| arg tRSHFT arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_bin_op($1, tRSHFT, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern(">>"), $3);
-
+		    %*/
 		    }
 		| arg tANDOP arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = logop(NODE_AND, $1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("&&"), $3);
-
+		    %*/
 		    }
 		| arg tOROP arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = logop(NODE_OR, $1, $3);
-#endif
+		    /*%
 			$$ = dispatch3(binary, $1, ripper_intern("||"), $3);
-
+		    %*/
 		    }
 		| keyword_defined opt_nl {in_defined = 1;} arg
 		    {
-#if 0
+		    /*%%%*/
 			in_defined = 0;
 			$$ = NEW_DEFINED($4);
-#endif
+		    /*%
 			in_defined = 0;
 			$$ = dispatch1(defined, $4);
-
+		    %*/
 		    }
 		| arg '?' arg opt_nl ':' arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($1);
 			$$ = NEW_IF(cond($1), $3, $6);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch3(ifop, $1, $3, $6);
-
+		    %*/
 		    }
 		| primary
 		    {
@@ -2349,13 +2338,13 @@ arg		: lhs '=' arg
 
 arg_value	: arg
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($1);
 			$$ = $1;
 		        if (!$$) $$ = NEW_NIL();
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		;
 
@@ -2366,29 +2355,29 @@ aref_args	: none
 		    }
 		| args ',' assocs trailer
 		    {
-#if 0
+		    /*%%%*/
 			$$ = arg_append($1, NEW_HASH($3));
-#endif
+		    /*%
 			$$ = arg_add_assocs($1, $3);
-
+		    %*/
 		    }
 		| assocs trailer
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIST(NEW_HASH($1));
-#endif
+		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
-
+		    %*/
 		    }
 		;
 
 paren_args	: '(' opt_call_args rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(arg_paren, escape_Qundef($2));
-
+		    %*/
 		    }
 		;
 
@@ -2402,47 +2391,47 @@ opt_call_args	: none
 
 call_args	: command
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($1);
 			$$ = NEW_LIST($1);
-#endif
+		    /*%
 			$$ = arg_add(arg_new(), $1);
-
+		    %*/
 		    }
 		| args opt_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = arg_blk_pass($1, $2);
-#endif
+		    /*%
 			$$ = arg_add_optblock($1, $2);
-
+		    %*/
 		    }
 		| assocs opt_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIST(NEW_HASH($1));
 			$$ = arg_blk_pass($$, $2);
-#endif
+		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
 			$$ = arg_add_optblock($$, $2);
-
+		    %*/
 		    }
 		| args ',' assocs opt_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = arg_append($1, NEW_HASH($3));
 			$$ = arg_blk_pass($$, $4);
-#endif
+		    /*%
 			$$ = arg_add_optblock(arg_add_assocs($1, $3), $4);
-
+		    %*/
 		    }
 		| block_arg
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    {
 			$$ = arg_add_block(arg_new(), $1);
 		    }
-
+		    %*/
 		;
 
 command_args	:  {
@@ -2459,11 +2448,11 @@ command_args	:  {
 
 block_arg	: tAMPER arg_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_BLOCK_PASS($2);
-#endif
+		    /*%
 			$$ = $2;
-
+		    %*/
 		    }
 		;
 
@@ -2483,23 +2472,23 @@ opt_block_arg	: ',' block_arg
 
 args		: arg_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIST($1);
-#endif
+		    /*%
 			$$ = arg_add(arg_new(), $1);
-
+		    %*/
 		    }
 		| tSTAR arg_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_SPLAT($2);
-#endif
+		    /*%
 			$$ = arg_add_star(arg_new(), $2);
-
+		    %*/
 		    }
 		| args ',' arg_value
 		    {
-#if 0
+		    /*%%%*/
 			NODE *n1;
 			if ((n1 = splat_array($1)) != 0) {
 			    $$ = list_append(n1, $3);
@@ -2507,13 +2496,13 @@ args		: arg_value
 			else {
 			    $$ = arg_append($1, $3);
 			}
-#endif
+		    /*%
 			$$ = arg_add($1, $3);
-
+		    %*/
 		    }
 		| args ',' tSTAR arg_value
 		    {
-#if 0
+		    /*%%%*/
 			NODE *n1;
 			if ((nd_type($4) == NODE_ARRAY) && (n1 = splat_array($1)) != 0) {
 			    $$ = list_concat(n1, $4);
@@ -2521,15 +2510,15 @@ args		: arg_value
 			else {
 			    $$ = arg_concat($1, $4);
 			}
-#endif
+		    /*%
 			$$ = arg_add_star($1, $4);
-
+		    %*/
 		    }
 		;
 
 mrhs		: args ',' arg_value
 		    {
-#if 0
+		    /*%%%*/
 			NODE *n1;
 			if ((n1 = splat_array($1)) != 0) {
 			    $$ = list_append(n1, $3);
@@ -2537,13 +2526,13 @@ mrhs		: args ',' arg_value
 			else {
 			    $$ = arg_append($1, $3);
 			}
-#endif
+		    /*%
 			$$ = mrhs_add(args2mrhs($1), $3);
-
+		    %*/
 		    }
 		| args ',' tSTAR arg_value
 		    {
-#if 0
+		    /*%%%*/
 			NODE *n1;
 			if (nd_type($4) == NODE_ARRAY &&
 			    (n1 = splat_array($1)) != 0) {
@@ -2552,17 +2541,17 @@ mrhs		: args ',' arg_value
 			else {
 			    $$ = arg_concat($1, $4);
 			}
-#endif
+		    /*%
 			$$ = mrhs_add_star(args2mrhs($1), $4);
-
+		    %*/
 		    }
 		| tSTAR arg_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_SPLAT($2);
-#endif
+		    /*%
 			$$ = mrhs_add_star(mrhs_new(), $2);
-
+		    %*/
 		    }
 		;
 
@@ -2576,23 +2565,23 @@ primary		: literal
 		| backref
 		| tFID
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_FCALL($1, 0);
-#endif
+		    /*%
 			$$ = method_arg(dispatch1(fcall, $1), arg_new());
-
+		    %*/
 		    }
 		| k_begin
 		    {
-#if 0
+		    /*%%%*/
 			$<num>$ = ruby_sourceline;
-#endif
-
+		    /*%
+		    %*/
 		    }
 		  bodystmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			if ($3 == NULL) {
 			    $$ = NEW_NIL();
 			}
@@ -2603,144 +2592,144 @@ primary		: literal
 			    $$ = NEW_BEGIN($3);
 			}
 			nd_set_line($$, $<num>2);
-#endif
+		    /*%
 			$$ = dispatch1(begin, $3);
-
+		    %*/
 		    }
 		| tLPAREN_ARG expr {lex_state = EXPR_ENDARG;} rparen
 		    {
 			rb_warning0("(...) interpreted as grouped expression");
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(paren, $2);
-
+		    %*/
 		    }
 		| tLPAREN compstmt ')'
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(paren, $2);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_COLON2($1, $3);
-#endif
+		    /*%
 			$$ = dispatch2(const_path_ref, $1, $3);
-
+		    %*/
 		    }
 		| tCOLON3 tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_COLON3($2);
-#endif
+		    /*%
 			$$ = dispatch1(top_const_ref, $2);
-
+		    %*/
 		    }
 		| tLBRACK aref_args ']'
 		    {
-#if 0
+		    /*%%%*/
 			if ($2 == 0) {
 			    $$ = NEW_ZARRAY(); /* zero length array*/
 			}
 			else {
 			    $$ = $2;
 			}
-#endif
+		    /*%
 			$$ = dispatch1(array, escape_Qundef($2));
-
+		    %*/
 		    }
 		| tLBRACE assoc_list '}'
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_HASH($2);
-#endif
+		    /*%
 			$$ = dispatch1(hash, escape_Qundef($2));
-
+		    %*/
 		    }
 		| keyword_return
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_RETURN(0);
-#endif
+		    /*%
 			$$ = dispatch0(return0);
-
+		    %*/
 		    }
 		| keyword_yield '(' call_args rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_yield($3);
-#endif
+		    /*%
 			$$ = dispatch1(yield, dispatch1(paren, $3));
-
+		    %*/
 		    }
 		| keyword_yield '(' rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_YIELD(0, Qfalse);
-#endif
+		    /*%
 			$$ = dispatch1(yield, dispatch1(paren, arg_new()));
-
+		    %*/
 		    }
 		| keyword_yield
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_YIELD(0, Qfalse);
-#endif
+		    /*%
 			$$ = dispatch0(yield0);
-
+		    %*/
 		    }
 		| keyword_defined opt_nl '(' {in_defined = 1;} expr rparen
 		    {
-#if 0
+		    /*%%%*/
 			in_defined = 0;
 			$$ = NEW_DEFINED($5);
-#endif
+		    /*%
 			in_defined = 0;
 			$$ = dispatch1(defined, $5);
-
+		    %*/
 		    }
 		| keyword_not '(' expr rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_uni_op(cond($3), '!');
-#endif
+		    /*%
 			$$ = dispatch2(unary, ripper_intern("not"), $3);
-
+		    %*/
 		    }
 		| keyword_not '(' rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = call_uni_op(cond(NEW_NIL()), '!');
-#endif
+		    /*%
 			$$ = dispatch2(unary, ripper_intern("not"), Qnil);
-
+		    %*/
 		    }
 		| operation brace_block
 		    {
-#if 0
+		    /*%%%*/
 			$2->nd_iter = NEW_FCALL($1, 0);
 			$$ = $2;
 			fixpos($2->nd_iter, $2);
-#endif
+		    /*%
 			$$ = method_arg(dispatch1(fcall, $1), arg_new());
 			$$ = method_add_block($$, $2);
-
+		    %*/
 		    }
 		| method_call
 		| method_call brace_block
 		    {
-#if 0
+		    /*%%%*/
 			block_dup_check($1->nd_args, $2);
 			$2->nd_iter = $1;
 			$$ = $2;
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = method_add_block($1, $2);
-
+		    %*/
 		    }
 		| tLAMBDA lambda
 		    {
@@ -2751,65 +2740,65 @@ primary		: literal
 		  if_tail
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_IF(cond($2), $4, $5);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch3(if, $2, $4, escape_Qundef($5));
-
+		    %*/
 		    }
 		| k_unless expr_value then
 		  compstmt
 		  opt_else
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_UNLESS(cond($2), $4, $5);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch3(unless, $2, $4, escape_Qundef($5));
-
+		    %*/
 		    }
 		| k_while {COND_PUSH(1);} expr_value do {COND_POP();}
 		  compstmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_WHILE(cond($3), $6, 1);
 			fixpos($$, $3);
-#endif
+		    /*%
 			$$ = dispatch2(while, $3, $6);
-
+		    %*/
 		    }
 		| k_until {COND_PUSH(1);} expr_value do {COND_POP();}
 		  compstmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_UNTIL(cond($3), $6, 1);
 			fixpos($$, $3);
-#endif
+		    /*%
 			$$ = dispatch2(until, $3, $6);
-
+		    %*/
 		    }
 		| k_case expr_value opt_terms
 		  case_body
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CASE($2, $4);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch2(case, $2, $4);
-
+		    %*/
 		    }
 		| k_case opt_terms case_body k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CASE(0, $3);
-#endif
+		    /*%
 			$$ = dispatch2(case, Qnil, $3);
-
+		    %*/
 		    }
 		| k_for for_var keyword_in
 		  {COND_PUSH(1);}
@@ -2818,7 +2807,7 @@ primary		: literal
 		  compstmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			/*
 			 *  for a, b, c in e
 			 *  #=>
@@ -2873,29 +2862,29 @@ primary		: literal
 			tbl[0] = 1; tbl[1] = id;
 			$$ = NEW_FOR(0, $5, scope);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch3(for, $2, $5, $8);
-
+		    %*/
 		    }
 		| k_class cpath superclass
 		    {
 			if (in_def || in_single)
 			    yyerror("class definition in method body");
 			local_push(0);
-#if 0
+		    /*%%%*/
 			$<num>$ = ruby_sourceline;
-#endif
-
+		    /*%
+		    %*/
 		    }
 		  bodystmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CLASS($2, $5, $3);
 			nd_set_line($$, $<num>4);
-#endif
+		    /*%
 			$$ = dispatch3(class, $2, $3, $5);
-
+		    %*/
 			local_pop();
 		    }
 		| k_class tLSHFT expr
@@ -2912,12 +2901,12 @@ primary		: literal
 		  bodystmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_SCLASS($3, $7);
 			fixpos($$, $3);
-#endif
+		    /*%
 			$$ = dispatch2(sclass, $3, $7);
-
+		    %*/
 			local_pop();
 			in_def = $<num>4;
 			in_single = $<num>6;
@@ -2927,20 +2916,20 @@ primary		: literal
 			if (in_def || in_single)
 			    yyerror("module definition in method body");
 			local_push(0);
-#if 0
+		    /*%%%*/
 			$<num>$ = ruby_sourceline;
-#endif
-
+		    /*%
+		    %*/
 		    }
 		  bodystmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MODULE($2, $4);
 			nd_set_line($$, $<num>3);
-#endif
+		    /*%
 			$$ = dispatch2(module, $2, $4);
-
+		    %*/
 			local_pop();
 		    }
 		| k_def fname
@@ -2954,14 +2943,14 @@ primary		: literal
 		  bodystmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			NODE *body = remove_begin($5);
 			reduce_nodes(&body);
 			$$ = NEW_DEFN($2, $4, body, NOEX_PRIVATE);
 			nd_set_line($$, $<num>1);
-#endif
+		    /*%
 			$$ = dispatch3(def, $2, $4, $5);
-
+		    %*/
 			local_pop();
 			in_def--;
 			cur_mid = $<id>3;
@@ -2976,60 +2965,60 @@ primary		: literal
 		  bodystmt
 		  k_end
 		    {
-#if 0
+		    /*%%%*/
 			NODE *body = remove_begin($8);
 			reduce_nodes(&body);
 			$$ = NEW_DEFS($2, $5, $7, body);
 			nd_set_line($$, $<num>1);
-#endif
+		    /*%
 			$$ = dispatch5(defs, $2, $3, $5, $7, $8);
-
+		    %*/
 			local_pop();
 			in_single--;
 		    }
 		| keyword_break
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_BREAK(0);
-#endif
+		    /*%
 			$$ = dispatch1(break, arg_new());
-
+		    %*/
 		    }
 		| keyword_next
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_NEXT(0);
-#endif
+		    /*%
 			$$ = dispatch1(next, arg_new());
-
+		    %*/
 		    }
 		| keyword_redo
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_REDO();
-#endif
+		    /*%
 			$$ = dispatch0(redo);
-
+		    %*/
 		    }
 		| keyword_retry
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_RETRY();
-#endif
+		    /*%
 			$$ = dispatch0(retry);
-
+		    %*/
 		    }
 		;
 
 primary_value	: primary
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($1);
 			$$ = $1;
 		        if (!$$) $$ = NEW_NIL();
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		;
 
@@ -3090,10 +3079,10 @@ k_module	: keyword_module
 k_def		: keyword_def
 		    {
 			token_info_push("def");
-#if 0
+		    /*%%%*/
 			$<num>$ = ruby_sourceline;
-#endif
-
+		    /*%
+		    %*/
 		    }
 		;
 
@@ -3104,23 +3093,23 @@ k_end		: keyword_end
 		;
 
 then		: term
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    { $$ = Qnil; }
-
+		    %*/
 		| keyword_then
 		| term keyword_then
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    { $$ = $2; }
-
+		    %*/
 		;
 
 do		: term
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    { $$ = Qnil; }
-
+		    %*/
 		| keyword_do_cond
 		;
 
@@ -3129,23 +3118,23 @@ if_tail		: opt_else
 		  compstmt
 		  if_tail
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_IF(cond($2), $4, $5);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = dispatch3(elsif, $2, $4, escape_Qundef($5));
-
+		    %*/
 		    }
 		;
 
 opt_else	: none
 		| keyword_else compstmt
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(else, $2);
-
+		    %*/
 		    }
 		;
 
@@ -3156,240 +3145,240 @@ for_var		: lhs
 f_marg		: f_norm_arg
 		    {
 			$$ = assignable($1, 0);
-#if 0
-#endif
+		    /*%%%*/
+		    /*%
 			$$ = dispatch1(mlhs_paren, $$);
-
+		    %*/
 		    }
 		| tLPAREN f_margs rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(mlhs_paren, $2);
-
+		    %*/
 		    }
 		;
 
 f_marg_list	: f_marg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIST($1);
-#endif
+		    /*%
 			$$ = mlhs_add(mlhs_new(), $1);
-
+		    %*/
 		    }
 		| f_marg_list ',' f_marg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = list_append($1, $3);
-#endif
+		    /*%
 			$$ = mlhs_add($1, $3);
-
+		    %*/
 		    }
 		;
 
 f_margs		: f_marg_list
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, 0);
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		| f_marg_list ',' tSTAR f_norm_arg
 		    {
 			$$ = assignable($4, 0);
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, $$);
-#endif
+		    /*%
 			$$ = mlhs_add_star($1, $$);
-
+		    %*/
 		    }
 		| f_marg_list ',' tSTAR f_norm_arg ',' f_marg_list
 		    {
 			$$ = assignable($4, 0);
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG($$, $6));
-#endif
+		    /*%
 			$$ = mlhs_add_star($1, $$);
-
+		    %*/
 		    }
 		| f_marg_list ',' tSTAR
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, -1);
-#endif
+		    /*%
 			$$ = mlhs_add_star($1, Qnil);
-
+		    %*/
 		    }
 		| f_marg_list ',' tSTAR ',' f_marg_list
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG(-1, $5));
-#endif
+		    /*%
 			$$ = mlhs_add_star($1, $5);
-
+		    %*/
 		    }
 		| tSTAR f_norm_arg
 		    {
 			$$ = assignable($2, 0);
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(0, $$);
-#endif
+		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $$);
-
+		    %*/
 		    }
 		| tSTAR f_norm_arg ',' f_marg_list
 		    {
 			$$ = assignable($2, 0);
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG($$, $4));
-#endif
+		    /*%
 		      #if 0
 		      TODO: Check me
 		      #endif
 			$$ = mlhs_add_star($$, $4);
-
+		    %*/
 		    }
 		| tSTAR
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(0, -1);
-#endif
+		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
-
+		    %*/
 		    }
 		| tSTAR ',' f_marg_list
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG(-1, $3));
-#endif
+		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
-
+		    %*/
 		    }
 		;
 
 block_param	: f_arg ',' f_block_optarg ',' f_rest_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, $3, $5, 0, $6);
-#endif
+		    /*%
 			$$ = params_new($1, $3, $5, Qnil, escape_Qundef($6));
-
+		    %*/
 		    }
 		| f_arg ',' f_block_optarg ',' f_rest_arg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, $3, $5, $7, $8);
-#endif
+		    /*%
 			$$ = params_new($1, $3, $5, $7, escape_Qundef($8));
-
+		    %*/
 		    }
 		| f_arg ',' f_block_optarg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, $3, 0, 0, $4);
-#endif
+		    /*%
 			$$ = params_new($1, $3, Qnil, Qnil, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_arg ',' f_block_optarg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, $3, 0, $5, $6);
-#endif
+		    /*%
 			$$ = params_new($1, $3, Qnil, $5, escape_Qundef($6));
-
+		    %*/
 		    }
                 | f_arg ',' f_rest_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, 0, $3, 0, $4);
-#endif
+		    /*%
 			$$ = params_new($1, Qnil, $3, Qnil, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_arg ','
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, 0, 1, 0, 0);
-#endif
+		    /*%
 			$$ = params_new($1, Qnil, Qnil, Qnil, Qnil);
                         dispatch1(excessed_comma, $$);
-
+		    %*/
 		    }
 		| f_arg ',' f_rest_arg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, 0, $3, $5, $6);
-#endif
+		    /*%
 			$$ = params_new($1, Qnil, $3, $5, escape_Qundef($6));
-
+		    %*/
 		    }
 		| f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, 0, 0, 0, $2);
-#endif
+		    /*%
 			$$ = params_new($1, Qnil,Qnil, Qnil, escape_Qundef($2));
-
+		    %*/
 		    }
 		| f_block_optarg ',' f_rest_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, $1, $3, 0, $4);
-#endif
+		    /*%
 			$$ = params_new(Qnil, $1, $3, Qnil, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_block_optarg ',' f_rest_arg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, $1, $3, $5, $6);
-#endif
+		    /*%
 			$$ = params_new(Qnil, $1, $3, $5, escape_Qundef($6));
-
+		    %*/
 		    }
 		| f_block_optarg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, $1, 0, 0, $2);
-#endif
+		    /*%
 			$$ = params_new(Qnil, $1, Qnil, Qnil,escape_Qundef($2));
-
+		    %*/
 		    }
 		| f_block_optarg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, $1, 0, $3, $4);
-#endif
+		    /*%
 			$$ = params_new(Qnil, $1, Qnil, $3, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_rest_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, 0, $1, 0, $2);
-#endif
+		    /*%
 			$$ = params_new(Qnil, Qnil, $1, Qnil, escape_Qundef($2));
-
+		    %*/
 		    }
 		| f_rest_arg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, 0, $1, $3, $4);
-#endif
+		    /*%
 			$$ = params_new(Qnil, Qnil, $1, $3, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, 0, 0, 0, $1);
-#endif
+		    /*%
 			$$ = params_new(Qnil, Qnil, Qnil, Qnil, $1);
-
+		    %*/
 		    }
 		;
 
@@ -3402,29 +3391,29 @@ opt_block_param	: none
 
 block_param_def	: '|' opt_bv_decl '|'
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = blockvar_new(params_new(Qnil,Qnil,Qnil,Qnil,Qnil),
                                           escape_Qundef($2));
-
+		    %*/
 		    }
 		| tOROP
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = blockvar_new(params_new(Qnil,Qnil,Qnil,Qnil,Qnil),
                                           Qnil);
-
+		    %*/
 		    }
 		| '|' block_param opt_bv_decl '|'
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = blockvar_new(escape_Qundef($2), escape_Qundef($3));
-
+		    %*/
 		    }
 		;
 
@@ -3432,37 +3421,37 @@ block_param_def	: '|' opt_bv_decl '|'
 opt_bv_decl	: none
 		| ';' bv_decls
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = $2;
-
+		    %*/
 		    }
 		;
 
 bv_decls	: bvar
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    {
 			$$ = rb_ary_new3(1, $1);
 		    }
-
+		    %*/
 		| bv_decls ',' bvar
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    {
 			rb_ary_push($$, $3);
 		    }
-
+		    %*/
 		;
 
 bvar		: tIDENTIFIER
 		    {
 			new_bv(get_id($1));
-#if 0
-#endif
+		    /*%%%*/
+		    /*%
 			$$ = get_value($1);
-
+		    %*/
 		    }
 		| f_bad_arg
 		    {
@@ -3481,31 +3470,31 @@ lambda		:   {
 		  lambda_body
 		    {
 			lpar_beg = $<num>2;
-#if 0
+		    /*%%%*/
 			$$ = $3;
 			$$->nd_body = NEW_SCOPE($3->nd_head, $4);
-#endif
+		    /*%
 			$$ = dispatch2(lambda, $3, $4);
-
+		    %*/
 			dyna_pop($<vars>1);
 		    }
 		;
 
 f_larglist	: '(' f_args opt_bv_decl rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LAMBDA($2);
-#endif
+		    /*%
 			$$ = dispatch1(paren, $2);
-
+		    %*/
 		    }
 		| f_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LAMBDA($1);
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		;
 
@@ -3522,27 +3511,27 @@ lambda_body	: tLAMBEG compstmt '}'
 do_block	: keyword_do_block
 		    {
 			$<vars>1 = dyna_push();
-#if 0
+		    /*%%%*/
 			$<num>$ = ruby_sourceline;
-#endif
+		    /*% %*/
 		    }
 		  opt_block_param
 		  compstmt
 		  keyword_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_ITER($3,$4);
 			nd_set_line($$, $<num>2);
-#endif
+		    /*%
 			$$ = dispatch2(do_block, escape_Qundef($3), $4);
-
+		    %*/
 			dyna_pop($<vars>1);
 		    }
 		;
 
 block_call	: command do_block
 		    {
-#if 0
+		    /*%%%*/
 			if (nd_type($1) == NODE_YIELD) {
 			    compile_error(PARSER_ARG "block given to yield");
 			}
@@ -3552,155 +3541,155 @@ block_call	: command do_block
 			$2->nd_iter = $1;
 			$$ = $2;
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = method_add_block($1, $2);
-
+		    %*/
 		    }
 		| block_call '.' operation2 opt_paren_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, $4);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
 			$$ = method_optarg($$, $4);
-
+		    %*/
 		    }
 		| block_call tCOLON2 operation2 opt_paren_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, $4);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_intern("::"), $3);
 			$$ = method_optarg($$, $4);
-
+		    %*/
 		    }
 		;
 
 method_call	: operation paren_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_FCALL($1, $2);
 			fixpos($$, $2);
-#endif
+		    /*%
 			$$ = method_arg(dispatch1(fcall, $1), $2);
-
+		    %*/
 		    }
 		| primary_value '.' operation2 opt_paren_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, $4);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
 			$$ = method_optarg($$, $4);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 operation2 paren_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, $4);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
 			$$ = method_optarg($$, $4);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 operation3
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, $3, 0);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_intern("::"), $3);
-
+		    %*/
 		    }
 		| primary_value '.' paren_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, rb_intern("call"), $3);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_id2sym('.'),
 				       ripper_intern("call"));
 			$$ = method_optarg($$, $3);
-
+		    %*/
 		    }
 		| primary_value tCOLON2 paren_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CALL($1, rb_intern("call"), $3);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch3(call, $1, ripper_intern("::"),
 				       ripper_intern("call"));
 			$$ = method_optarg($$, $3);
-
+		    %*/
 		    }
 		| keyword_super paren_args
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_SUPER($2);
-#endif
+		    /*%
 			$$ = dispatch1(super, $2);
-
+		    %*/
 		    }
 		| keyword_super
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_ZSUPER();
-#endif
+		    /*%
 			$$ = dispatch0(zsuper);
-
+		    %*/
 		    }
 		| primary_value '[' opt_call_args rbracket
 		    {
-#if 0
+		    /*%%%*/
 			if ($1 && nd_type($1) == NODE_SELF)
 			    $$ = NEW_FCALL(tAREF, $3);
 			else
 			    $$ = NEW_CALL($1, tAREF, $3);
 			fixpos($$, $1);
-#endif
+		    /*%
 			$$ = dispatch2(aref, $1, escape_Qundef($3));
-
+		    %*/
 		    }
 		;
 
 brace_block	: '{'
 		    {
 			$<vars>1 = dyna_push();
-#if 0
+		    /*%%%*/
 			$<num>$ = ruby_sourceline;
-#endif
-
+		    /*%
+                    %*/
 		    }
 		  opt_block_param
 		  compstmt '}'
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_ITER($3,$4);
 			nd_set_line($$, $<num>2);
-#endif
+		    /*%
 			$$ = dispatch2(brace_block, escape_Qundef($3), $4);
-
+		    %*/
 			dyna_pop($<vars>1);
 		    }
 		| keyword_do
 		    {
 			$<vars>1 = dyna_push();
-#if 0
+		    /*%%%*/
 			$<num>$ = ruby_sourceline;
-#endif
-
+		    /*%
+                    %*/
 		    }
 		  opt_block_param
 		  compstmt keyword_end
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_ITER($3,$4);
 			nd_set_line($$, $<num>2);
-#endif
+		    /*%
 			$$ = dispatch2(do_block, escape_Qundef($3), $4);
-
+		    %*/
 			dyna_pop($<vars>1);
 		    }
 		;
@@ -3709,11 +3698,11 @@ case_body	: keyword_when args then
 		  compstmt
 		  cases
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_WHEN($2, $4, $5);
-#endif
+		    /*%
 			$$ = dispatch3(when, $2, $4, escape_Qundef($5));
-
+		    %*/
 		    }
 		;
 
@@ -3725,39 +3714,39 @@ opt_rescue	: keyword_rescue exc_list exc_var then
 		  compstmt
 		  opt_rescue
 		    {
-#if 0
+		    /*%%%*/
 			if ($3) {
 			    $3 = node_assign($3, NEW_ERRINFO());
 			    $5 = block_append($3, $5);
 			}
 			$$ = NEW_RESBODY($2, $5, $6);
 			fixpos($$, $2?$2:$5);
-#endif
+		    /*%
 			$$ = dispatch4(rescue,
 				       escape_Qundef($2),
 				       escape_Qundef($3),
 				       escape_Qundef($5),
 				       escape_Qundef($6));
-
+		    %*/
 		    }
 		| none
 		;
 
 exc_list	: arg_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIST($1);
-#endif
+		    /*%
 			$$ = rb_ary_new3(1, $1);
-
+		    %*/
 		    }
 		| mrhs
 		    {
-#if 0
+		    /*%%%*/
 			if (!($$ = splat_array($1))) $$ = $1;
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		| none
 		;
@@ -3771,11 +3760,11 @@ exc_var		: tASSOC lhs
 
 opt_ensure	: keyword_ensure compstmt
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(ensure, $2);
-
+		    %*/
 		    }
 		| none
 		;
@@ -3783,18 +3772,18 @@ opt_ensure	: keyword_ensure compstmt
 literal		: numeric
 		| symbol
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_LIT(ID2SYM($1));
-#endif
+		    /*%
 			$$ = dispatch1(symbol_literal, $1);
-
+		    %*/
 		    }
 		| dsym
 		;
 
 strings		: string
 		    {
-#if 0
+		    /*%%%*/
 			NODE *node = $1;
 			if (!node) {
 			    node = NEW_STR(STR_NEW0());
@@ -3803,9 +3792,9 @@ strings		: string
 			    node = evstr2dstr(node);
 			}
 			$$ = node;
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		;
 
@@ -3813,27 +3802,27 @@ string		: tCHAR
 		| string1
 		| string string1
 		    {
-#if 0
+		    /*%%%*/
 			$$ = literal_concat($1, $2);
-#endif
+		    /*%
 			$$ = dispatch2(string_concat, $1, $2);
-
+		    %*/
 		    }
 		;
 
 string1		: tSTRING_BEG string_contents tSTRING_END
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(string_literal, $2);
-
+		    %*/
 		    }
 		;
 
 xstring		: tXSTRING_BEG xstring_contents tSTRING_END
 		    {
-#if 0
+		    /*%%%*/
 			NODE *node = $2;
 			if (!node) {
 			    node = NEW_XSTR(STR_NEW0());
@@ -3852,15 +3841,15 @@ xstring		: tXSTRING_BEG xstring_contents tSTRING_END
 			    }
 			}
 			$$ = node;
-#endif
+		    /*%
 			$$ = dispatch1(xstring_literal, $2);
-
+		    %*/
 		    }
 		;
 
 regexp		: tREGEXP_BEG regexp_contents tREGEXP_END
 		    {
-#if 0
+		    /*%%%*/
 			int options = $3;
 			NODE *node = $2;
 			NODE *list, *prev;
@@ -3917,19 +3906,19 @@ regexp		: tREGEXP_BEG regexp_contents tREGEXP_END
 			    break;
 			}
 			$$ = node;
-#endif
+		    /*%
 			$$ = dispatch2(regexp_literal, $2, $3);
-
+		    %*/
 		    }
 		;
 
 words		: tWORDS_BEG ' ' tSTRING_END
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_ZARRAY();
-#endif
+		    /*%
 			$$ = dispatch0(words_new);
-
+		    %*/
 		    }
 		| tWORDS_BEG word_list tSTRING_END
 		    {
@@ -3939,47 +3928,47 @@ words		: tWORDS_BEG ' ' tSTRING_END
 
 word_list	: /* none */
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch0(words_new);
-
+		    %*/
 		    }
 		| word_list word ' '
 		    {
-#if 0
+		    /*%%%*/
 			$$ = list_append($1, evstr2dstr($2));
-#endif
+		    /*%
 			$$ = dispatch2(words_add, $1, $2);
-
+		    %*/
 		    }
 		;
 
 word		: string_content
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    {
 			$$ = dispatch0(word_new);
 			$$ = dispatch2(word_add, $$, $1);
 		    }
-
+		    %*/
 		| word string_content
 		    {
-#if 0
+		    /*%%%*/
 			$$ = literal_concat($1, $2);
-#endif
+		    /*%
 			$$ = dispatch2(word_add, $1, $2);
-
+		    %*/
 		    }
 		;
 
 qwords		: tQWORDS_BEG ' ' tSTRING_END
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_ZARRAY();
-#endif
+		    /*%
 			$$ = dispatch0(qwords_new);
-
+		    %*/
 		    }
 		| tQWORDS_BEG qword_list tSTRING_END
 		    {
@@ -3989,69 +3978,69 @@ qwords		: tQWORDS_BEG ' ' tSTRING_END
 
 qword_list	: /* none */
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch0(qwords_new);
-
+		    %*/
 		    }
 		| qword_list tSTRING_CONTENT ' '
 		    {
-#if 0
+		    /*%%%*/
 			$$ = list_append($1, $2);
-#endif
+		    /*%
 			$$ = dispatch2(qwords_add, $1, $2);
-
+		    %*/
 		    }
 		;
 
 string_contents : /* none */
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch0(string_content);
-
+		    %*/
 		    }
 		| string_contents string_content
 		    {
-#if 0
+		    /*%%%*/
 			$$ = literal_concat($1, $2);
-#endif
+		    /*%
 			$$ = dispatch2(string_add, $1, $2);
-
+		    %*/
 		    }
 		;
 
 xstring_contents: /* none */
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch0(xstring_new);
-
+		    %*/
 		    }
 		| xstring_contents string_content
 		    {
-#if 0
+		    /*%%%*/
 			$$ = literal_concat($1, $2);
-#endif
+		    /*%
 			$$ = dispatch2(xstring_add, $1, $2);
-
+		    %*/
 		    }
 		;
 
 regexp_contents: /* none */
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch0(regexp_new);
-
+		    %*/
 		    }
 		| regexp_contents string_content
 		    {
-#if 0
+		    /*%%%*/
 			NODE *head = $1, *tail = $2;
 			if (!head) {
 			    $$ = tail;
@@ -4072,9 +4061,9 @@ regexp_contents: /* none */
 			    }
 			    $$ = list_append(head, tail);
 			}
-#endif
+		    /*%
 			$$ = dispatch2(regexp_add, $1, $2);
-
+		    %*/
 		    }
 		;
 
@@ -4087,13 +4076,13 @@ string_content	: tSTRING_CONTENT
 		    }
 		  string_dvar
 		    {
-#if 0
+		    /*%%%*/
 			lex_strterm = $<node>2;
 			$$ = NEW_EVSTR($3);
-#endif
+		    /*%
 			lex_strterm = $<node>2;
 			$$ = dispatch1(string_dvar, $3);
-
+		    %*/
 		    }
 		| tSTRING_DBEG
 		    {
@@ -4112,38 +4101,38 @@ string_content	: tSTRING_CONTENT
 			cond_stack = $<val>1;
 			cmdarg_stack = $<val>2;
 			lex_strterm = $<node>3;
-#if 0
+		    /*%%%*/
 			if ($4) $4->flags &= ~NODE_FL_NEWLINE;
 			$$ = new_evstr($4);
-#endif
+		    /*%
 			$$ = dispatch1(string_embexpr, $4);
-
+		    %*/
 		    }
 		;
 
 string_dvar	: tGVAR
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_GVAR($1);
-#endif
+		    /*%
 			$$ = dispatch1(var_ref, $1);
-
+		    %*/
 		    }
 		| tIVAR
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_IVAR($1);
-#endif
+		    /*%
 			$$ = dispatch1(var_ref, $1);
-
+		    %*/
 		    }
 		| tCVAR
 		    {
-#if 0
+		    /*%%%*/
 			$$ = NEW_CVAR($1);
-#endif
+		    /*%
 			$$ = dispatch1(var_ref, $1);
-
+		    %*/
 		    }
 		| backref
 		;
@@ -4151,11 +4140,11 @@ string_dvar	: tGVAR
 symbol		: tSYMBEG sym
 		    {
 			lex_state = EXPR_END;
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(symbol, $2);
-
+		    %*/
 		    }
 		;
 
@@ -4168,7 +4157,7 @@ sym		: fname
 dsym		: tSYMBEG xstring_contents tSTRING_END
 		    {
 			lex_state = EXPR_END;
-#if 0
+		    /*%%%*/
 			if (!($$ = $2)) {
 			    $$ = NEW_LIT(ID2SYM(rb_intern("")));
 			}
@@ -4189,9 +4178,9 @@ dsym		: tSYMBEG xstring_contents tSTRING_END
 				break;
 			    }
 			}
-#endif
+		    /*%
 			$$ = dispatch1(dyna_symbol, $2);
-
+		    %*/
 		    }
 		;
 
@@ -4199,19 +4188,19 @@ numeric 	: tINTEGER
 		| tFLOAT
 		| tUMINUS_NUM tINTEGER	       %prec tLOWEST
 		    {
-#if 0
+		    /*%%%*/
 			$$ = negate_lit($2);
-#endif
+		    /*%
 			$$ = dispatch2(unary, ripper_intern("-@"), $2);
-
+		    %*/
 		    }
 		| tUMINUS_NUM tFLOAT	       %prec tLOWEST
 		    {
-#if 0
+		    /*%%%*/
 			$$ = negate_lit($2);
-#endif
+		    /*%
 			$$ = dispatch2(unary, ripper_intern("-@"), $2);
-
+		    %*/
 		    }
 		;
 
@@ -4231,21 +4220,21 @@ variable	: tIDENTIFIER
 
 var_ref		: variable
 		    {
-#if 0
+		    /*%%%*/
 			if (!($$ = gettable($1))) $$ = NEW_BEGIN(0);
-#endif
+		    /*%
 			$$ = dispatch1(var_ref, $1);
-
+		    %*/
 		    }
 		;
 
 var_lhs		: variable
 		    {
 			$$ = assignable($1, 0);
-#if 0
-#endif
+		    /*%%%*/
+		    /*%
 			$$ = dispatch1(var_field, $$);
-
+		    %*/
 		    }
 		;
 
@@ -4255,11 +4244,11 @@ backref		: tNTH_REF
 
 superclass	: term
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = Qnil;
-
+		    %*/
 		    }
 		| '<'
 		    {
@@ -4271,23 +4260,23 @@ superclass	: term
 		    }
 		| error term
 		    {
-#if 0
+		    /*%%%*/
 			yyerrok;
 			$$ = 0;
-#endif
+		    /*%
 			yyerrok;
 			$$ = Qnil;
-
+		    %*/
 		    }
 		;
 
 f_arglist	: '(' f_args rparen
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(paren, $2);
-
+		    %*/
 			lex_state = EXPR_BEG;
 			command_start = TRUE;
 		    }
@@ -4299,161 +4288,161 @@ f_arglist	: '(' f_args rparen
 
 f_args		: f_arg ',' f_optarg ',' f_rest_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, $3, $5, 0, $6);
-#endif
+		    /*%
 			$$ = params_new($1, $3, $5, Qnil, escape_Qundef($6));
-
+		    %*/
 		    }
 		| f_arg ',' f_optarg ',' f_rest_arg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, $3, $5, $7, $8);
-#endif
+		    /*%
 			$$ = params_new($1, $3, $5, $7, escape_Qundef($8));
-
+		    %*/
 		    }
 		| f_arg ',' f_optarg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, $3, 0, 0, $4);
-#endif
+		    /*%
 			$$ = params_new($1, $3, Qnil, Qnil, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_arg ',' f_optarg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, $3, 0, $5, $6);
-#endif
+		    /*%
 			$$ = params_new($1, $3, Qnil, $5, escape_Qundef($6));
-
+		    %*/
 		    }
 		| f_arg ',' f_rest_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, 0, $3, 0, $4);
-#endif
+		    /*%
 			$$ = params_new($1, Qnil, $3, Qnil, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_arg ',' f_rest_arg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, 0, $3, $5, $6);
-#endif
+		    /*%
 			$$ = params_new($1, Qnil, $3, $5, escape_Qundef($6));
-
+		    %*/
 		    }
 		| f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args($1, 0, 0, 0, $2);
-#endif
+		    /*%
 			$$ = params_new($1, Qnil, Qnil, Qnil,escape_Qundef($2));
-
+		    %*/
 		    }
 		| f_optarg ',' f_rest_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, $1, $3, 0, $4);
-#endif
+		    /*%
 			$$ = params_new(Qnil, $1, $3, Qnil, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_optarg ',' f_rest_arg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, $1, $3, $5, $6);
-#endif
+		    /*%
 			$$ = params_new(Qnil, $1, $3, $5, escape_Qundef($6));
-
+		    %*/
 		    }
 		| f_optarg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, $1, 0, 0, $2);
-#endif
+		    /*%
 			$$ = params_new(Qnil, $1, Qnil, Qnil,escape_Qundef($2));
-
+		    %*/
 		    }
 		| f_optarg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, $1, 0, $3, $4);
-#endif
+		    /*%
 			$$ = params_new(Qnil, $1, Qnil, $3, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_rest_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, 0, $1, 0, $2);
-#endif
+		    /*%
 			$$ = params_new(Qnil, Qnil, $1, Qnil,escape_Qundef($2));
-
+		    %*/
 		    }
 		| f_rest_arg ',' f_arg opt_f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, 0, $1, $3, $4);
-#endif
+		    /*%
 			$$ = params_new(Qnil, Qnil, $1, $3, escape_Qundef($4));
-
+		    %*/
 		    }
 		| f_block_arg
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, 0, 0, 0, $1);
-#endif
+		    /*%
 			$$ = params_new(Qnil, Qnil, Qnil, Qnil, $1);
-
+		    %*/
 		    }
 		| /* none */
 		    {
-#if 0
+		    /*%%%*/
 			$$ = new_args(0, 0, 0, 0, 0);
-#endif
+		    /*%
 			$$ = params_new(Qnil, Qnil, Qnil, Qnil, Qnil);
-
+		    %*/
 		    }
 		;
 
 f_bad_arg	: tCONSTANT
 		    {
-#if 0
+		    /*%%%*/
 			yyerror("formal argument cannot be a constant");
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch1(param_error, $1);
-
+		    %*/
 		    }
 		| tIVAR
 		    {
-#if 0
+		    /*%%%*/
 			yyerror("formal argument cannot be an instance variable");
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch1(param_error, $1);
-
+		    %*/
 		    }
 		| tGVAR
 		    {
-#if 0
+		    /*%%%*/
 			yyerror("formal argument cannot be a global variable");
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch1(param_error, $1);
-
+		    %*/
 		    }
 		| tCVAR
 		    {
-#if 0
+		    /*%%%*/
 			yyerror("formal argument cannot be a class variable");
 			$$ = 0;
-#endif
+		    /*%
 			$$ = dispatch1(param_error, $1);
-
+		    %*/
 		    }
 		;
 
@@ -4468,17 +4457,17 @@ f_norm_arg	: f_bad_arg
 f_arg_item	: f_norm_arg
 		    {
 			arg_var(get_id($1));
-#if 0
+		    /*%%%*/
 			$$ = NEW_ARGS_AUX($1, 1);
-#endif
+		    /*%
 			$$ = get_value($1);
-
+		    %*/
 		    }
 		| tLPAREN f_margs rparen
 		    {
 			ID tid = internal_id();
 			arg_var(tid);
-#if 0
+		    /*%%%*/
 			if (dyna_in_block()) {
 			    $2->nd_value = NEW_DVAR(tid);
 			}
@@ -4487,29 +4476,29 @@ f_arg_item	: f_norm_arg
 			}
 			$$ = NEW_ARGS_AUX(tid, 1);
 			$$->nd_next = $2;
-#endif
+		    /*%
 			$$ = dispatch1(mlhs_paren, $2);
-
+		    %*/
 		    }
 		;
 
 f_arg		: f_arg_item
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    {
 			$$ = rb_ary_new3(1, $1);
 		    }
-
+		    c%*/
 		| f_arg ',' f_arg_item
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $1;
 			$$->nd_plen++;
 			$$->nd_next = block_append($$->nd_next, $3->nd_next);
 			rb_gc_force_recycle((VALUE)$3);
-#endif
+		    /*%
 			$$ = rb_ary_push($1, $3);
-
+		    %*/
 		    }
 		;
 
@@ -4517,11 +4506,11 @@ f_opt		: tIDENTIFIER '=' arg_value
 		    {
 			arg_var(formal_argument(get_id($1)));
 			$$ = assignable($1, $3);
-#if 0
+		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, $$);
-#endif
+		    /*%
 			$$ = rb_assoc_new($$, $3);
-
+		    %*/
 		    }
 		;
 
@@ -4529,25 +4518,25 @@ f_block_opt	: tIDENTIFIER '=' primary_value
 		    {
 			arg_var(formal_argument(get_id($1)));
 			$$ = assignable($1, $3);
-#if 0
+		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, $$);
-#endif
+		    /*%
 			$$ = rb_assoc_new($$, $3);
-
+		    %*/
 		    }
 		;
 
 f_block_optarg	: f_block_opt
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $1;
-#endif
+		    /*%
 			$$ = rb_ary_new3(1, $1);
-
+		    %*/
 		    }
 		| f_block_optarg ',' f_block_opt
 		    {
-#if 0
+		    /*%%%*/
 			NODE *opts = $1;
 
 			while (opts->nd_next) {
@@ -4555,23 +4544,23 @@ f_block_optarg	: f_block_opt
 			}
 			opts->nd_next = $3;
 			$$ = $1;
-#endif
+		    /*%
 			$$ = rb_ary_push($1, $3);
-
+		    %*/
 		    }
 		;
 
 f_optarg	: f_opt
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $1;
-#endif
+		    /*%
 			$$ = rb_ary_new3(1, $1);
-
+		    %*/
 		    }
 		| f_optarg ',' f_opt
 		    {
-#if 0
+		    /*%%%*/
 			NODE *opts = $1;
 
 			while (opts->nd_next) {
@@ -4579,9 +4568,9 @@ f_optarg	: f_opt
 			}
 			opts->nd_next = $3;
 			$$ = $1;
-#endif
+		    /*%
 			$$ = rb_ary_push($1, $3);
-
+		    %*/
 		    }
 		;
 
@@ -4591,25 +4580,25 @@ restarg_mark	: '*'
 
 f_rest_arg	: restarg_mark tIDENTIFIER
 		    {
-#if 0
+		    /*%%%*/
 			if (!is_local_id($2))
 			    yyerror("rest argument must be local variable");
-#endif
+		    /*% %*/
 			arg_var(shadowing_lvar(get_id($2)));
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(rest_param, $2);
-
+		    %*/
 		    }
 		| restarg_mark
 		    {
-#if 0
+		    /*%%%*/
 			$$ = internal_id();
 			arg_var($$);
-#endif
+		    /*%
 			$$ = dispatch1(rest_param, Qnil);
-
+		    %*/
 		    }
 		;
 
@@ -4619,18 +4608,18 @@ blkarg_mark	: '&'
 
 f_block_arg	: blkarg_mark tIDENTIFIER
 		    {
-#if 0
+		    /*%%%*/
 			if (!is_local_id($2))
 			    yyerror("block argument must be local variable");
 			else if (!dyna_in_block() && local_id($2))
 			    yyerror("duplicated block argument name");
-#endif
+		    /*% %*/
 			arg_var(shadowing_lvar(get_id($2)));
-#if 0
+		    /*%%%*/
 			$$ = $2;
-#endif
+		    /*%
 			$$ = dispatch1(blockarg, $2);
-
+		    %*/
 		    }
 		;
 
@@ -4640,27 +4629,27 @@ opt_f_block_arg	: ',' f_block_arg
 		    }
 		| none
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = Qundef;
-
+		    %*/
 		    }
 		;
 
 singleton	: var_ref
 		    {
-#if 0
+		    /*%%%*/
 			value_expr($1);
 			$$ = $1;
 		        if (!$$) $$ = NEW_NIL();
-#endif
+		    /*%
 			$$ = $1;
-
+		    %*/
 		    }
 		| '(' {lex_state = EXPR_BEG;} expr rparen
 		    {
-#if 0
+		    /*%%%*/
 			if ($3 == 0) {
 			    yyerror("can't define singleton method for ().");
 			}
@@ -4681,55 +4670,55 @@ singleton	: var_ref
 			    }
 			}
 			$$ = $3;
-#endif
+		    /*%
 			$$ = dispatch1(paren, $3);
-
+		    %*/
 		    }
 		;
 
 assoc_list	: none
 		| assocs trailer
 		    {
-#if 0
+		    /*%%%*/
 			$$ = $1;
-#endif
+		    /*%
 			$$ = dispatch1(assoclist_from_args, $1);
-
+		    %*/
 		    }
 		;
 
 assocs		: assoc
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    {
 			$$ = rb_ary_new3(1, $1);
 		    }
-
+		    %*/
 		| assocs ',' assoc
 		    {
-#if 0
+		    /*%%%*/
 			$$ = list_concat($1, $3);
-#endif
+		    /*%
 			$$ = rb_ary_push($1, $3);
-
+		    %*/
 		    }
 		;
 
 assoc		: arg_value tASSOC arg_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = list_append(NEW_LIST($1), $3);
-#endif
+		    /*%
 			$$ = dispatch2(assoc_new, $1, $3);
-
+		    %*/
 		    }
 		| tLABEL arg_value
 		    {
-#if 0
+		    /*%%%*/
 			$$ = list_append(NEW_LIST(NEW_LIT(ID2SYM($1))), $2);
-#endif
+		    /*%
 			$$ = dispatch2(assoc_new, $1, $2);
-
+		    %*/
 		    }
 		;
 
@@ -4750,15 +4739,15 @@ operation3	: tIDENTIFIER
 		;
 
 dot_or_colon	: '.'
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    { $$ = $<val>1; }
-
+		    %*/
 		| tCOLON2
-/*
-*/
+		    /*%c%*/
+		    /*%c
 		    { $$ = $<val>1; }
-
+		    %*/
 		;
 
 opt_terms	: /* none */
@@ -4790,11 +4779,11 @@ terms		: term
 
 none		: /* none */
 		    {
-#if 0
+		    /*%%%*/
 			$$ = 0;
-#endif
+		    /*%
 			$$ = Qundef;
-
+		    %*/
 		    }
 		;
 %%
@@ -10614,10 +10603,10 @@ Init_ripper(void)
     rb_define_method(Ripper, "column", ripper_column, 0);
     rb_define_method(Ripper, "filename", ripper_filename, 0);
     rb_define_method(Ripper, "lineno", ripper_lineno, 0);
-    rb_define_method(Ripper, "end_seen?", rb_parser_end_seen_p, 0);
-    rb_define_method(Ripper, "encoding", rb_parser_encoding, 0);
-    rb_define_method(Ripper, "yydebug", rb_parser_get_yydebug, 0);
-    rb_define_method(Ripper, "yydebug=", rb_parser_set_yydebug, 1);
+    // rb_define_method(Ripper, "end_seen?", rb_parser_end_seen_p, 0);
+    // rb_define_method(Ripper, "encoding", rb_parser_encoding, 0);
+    // rb_define_method(Ripper, "yydebug", rb_parser_get_yydebug, 0);
+    // rb_define_method(Ripper, "yydebug=", rb_parser_set_yydebug, 1);
 #ifdef RIPPER_DEBUG
     rb_define_method(rb_mKernel, "assert_Qundef", ripper_assert_Qundef, 2);
     rb_define_method(rb_mKernel, "rawVALUE", ripper_value, 1);

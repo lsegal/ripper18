@@ -16,6 +16,7 @@ def main
   $defs << '-DRIPPER_DEBUG' if $debug
   $VPATH = []
   $VPATH << '$(topdir)' << '$(top_srcdir)'
+  $INCFLAGS << ' -I$(srcdir)/backports' if RUBY_VERSION < "1.9.1"
   $INCFLAGS << ' -I$(topdir) -I$(top_srcdir)'
   create_makefile 'ripper'
 end

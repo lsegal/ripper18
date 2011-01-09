@@ -7,26 +7,26 @@ BISON = bison
 
 src: ripper.c eventids1.c eventids2table.c
 
-ripper.o: ripper.c 
+ripper.o: ripper.c lex.c eventids1.c eventids2.c eventids2table.c
 
 .y.c:
 	$(BISON) -t -v -oy.tab.c $<
-	sed -f $(top_srcdir)/tool/ytab.sed -e "/^#/s!y\.tab\.c!$@!" y.tab.c > $@
+	sed -f tools/ytab.sed -e "/^#/s!y\.tab\.c!$@!" y.tab.c > $@
 	@$(RM) y.tab.c
 
 all: check
 static: check
 
-#ripper.y: $(srcdir)/tools/preproc.rb parse.y
-#	$(RUBY) $(srcdir)/tools/preproc.rb parse.y --output=$@
+ripper.y: $(srcdir)/tools/preproc.rb parse.y
+	$(RUBY) $(srcdir)/tools/preproc.rb parse.y --output=$@
 
 check: $(GEN) $(SRC1) $(SRC2)
 	$(RUBY) $(GEN) --mode=check --ids1src=$(SRC1) --ids2src=$(SRC2)
 
-eventids1.c: $(srcdir)/tools/generate.rb $(SRC1)
+eventids1.c: tools/generate.rb $(SRC1)
 	$(RUBY) $(GEN) --mode=eventids1 --ids1src=$(SRC1) --output=$@
 
-eventids2table.c: $(srcdir)/tools/generate.rb $(SRC2)
+eventids2table.c: tools/generate.rb $(SRC2)
 	$(RUBY) $(GEN) --mode=eventids2table --ids2src=$(SRC2) --output=$@
 
 # Entries for Ripper maintainer
