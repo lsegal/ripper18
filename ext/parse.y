@@ -15,7 +15,6 @@
 #define YYERROR_VERBOSE 1
 #define YYSTACK_USE_ALLOCA 0
 
-#include "backports.h"
 #include "ruby/ruby.h"
 #include "ruby/st.h"
 #include "ruby/encoding.h"

@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #define TRUE 1
 #define FALSE 0
+#define SIGNED_VALUE long
 #define RSTRING_NOEMBED FL_USER1
 #define rb_isascii(c) 1
 #define rb_isalpha(c) isalpha(c)
