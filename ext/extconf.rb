@@ -2,6 +2,7 @@
 
 require 'mkmf'
 require 'rbconfig'
+require 'fileutils'
 
 def main
   unless find_executable('bison')
@@ -15,9 +16,11 @@ def main
   $defs << '-DRIPPER'
   $defs << '-DRIPPER_DEBUG' if $debug
   $VPATH = []
-  $VPATH << '$(topdir)' << '$(top_srcdir)'
-  $INCFLAGS << ' -I$(srcdir)/backports' if RUBY_VERSION < "1.9.1"
-  $INCFLAGS << ' -I$(topdir) -I$(top_srcdir)'
+  if RUBY_VERSION < "1.9.1"
+    $INCFLAGS << ' -I$(srcdir)/backports'
+  else
+    $INCFLAGS << ' -I$(srcdir)/extra'
+  end
   create_makefile 'ripper'
 end
 
