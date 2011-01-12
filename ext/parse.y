@@ -644,7 +644,6 @@ static void token_info_pop(struct parser_params*, const char *token);
 	keyword_do
 	keyword_do_cond
 	keyword_do_block
-	keyword_do_LAMBDA
 	keyword_return
 	keyword_yield
 	keyword_super
@@ -667,6 +666,7 @@ static void token_info_pop(struct parser_params*, const char *token);
 	keyword__LINE__
 	keyword__FILE__
 	keyword__ENCODING__
+	keyword_do_LAMBDA
 
 %token <id>   tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
 %token <node> tINTEGER tFLOAT tSTRING_CONTENT tCHAR
@@ -10007,6 +10007,8 @@ rb_parser_new(void)
     return TypedData_Wrap_Struct(0, &parser_data_type, p);
 }
 
+#endif
+
 /*
  *  call-seq:
  *    ripper#end_seen?   -> Boolean
@@ -10069,6 +10071,7 @@ rb_parser_set_yydebug(VALUE self, VALUE flag)
     return flag;
 }
 
+#ifndef RIPPER
 #ifdef YYMALLOC
 #define HEAPCNT(n, size) ((n) * (size) / sizeof(YYSTYPE))
 #define NEWHEAP() rb_node_newnode(NODE_ALLOCA, 0, (VALUE)parser->heap, 0)
@@ -10602,10 +10605,10 @@ Init_ripper(void)
     rb_define_method(Ripper, "column", ripper_column, 0);
     rb_define_method(Ripper, "filename", ripper_filename, 0);
     rb_define_method(Ripper, "lineno", ripper_lineno, 0);
-    // rb_define_method(Ripper, "end_seen?", rb_parser_end_seen_p, 0);
-    // rb_define_method(Ripper, "encoding", rb_parser_encoding, 0);
-    // rb_define_method(Ripper, "yydebug", rb_parser_get_yydebug, 0);
-    // rb_define_method(Ripper, "yydebug=", rb_parser_set_yydebug, 1);
+    rb_define_method(Ripper, "end_seen?", rb_parser_end_seen_p, 0);
+    rb_define_method(Ripper, "encoding", rb_parser_encoding, 0);
+    rb_define_method(Ripper, "yydebug", rb_parser_get_yydebug, 0);
+    rb_define_method(Ripper, "yydebug=", rb_parser_set_yydebug, 1);
 #ifdef RIPPER_DEBUG
     rb_define_method(rb_mKernel, "assert_Qundef", ripper_assert_Qundef, 2);
     rb_define_method(rb_mKernel, "rawVALUE", ripper_value, 1);

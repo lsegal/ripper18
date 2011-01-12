@@ -27,5 +27,5 @@ a\
 }
 s/^\([ 	]*\)\(yyerror[ 	]*([ 	]*parser,\)/\1parser_\2/
 s!^ *extern char \*getenv();!/* & */!
-s/^\(#.*\)".*\.tab\.c"/\1"parse.c"/
+s/^\(#.*\)".*\.tab\.c"/\1"ripper.c"/
 /^\(#.*\)".*\.y"/s:\\\\:/:g
