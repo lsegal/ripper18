@@ -7251,7 +7251,7 @@ parser_yylex(struct parser_params *parser)
 	    lex_state = EXPR_DOT;
 	    return tCOLON2;
 	}
-	if (IS_END() || ISSPACE(c)) {
+	if (ISSPACE(c)) {
 	    pushback(c);
 	    warn_balanced(":", "symbol literal");
 	    lex_state = EXPR_BEG;
