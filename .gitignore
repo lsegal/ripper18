@@ -2,7 +2,11 @@ Makefile
 mkmf.log
 eventids1.c
 eventids2table.c
-ripper.*
+ripper.o
+ripper.y
+ripper.c
+ripper.E
+ripper.bundle
 ids1
 ids2
 y.output
