@@ -8,7 +8,7 @@
 # For details of Ruby License, see ruby/COPYING.
 #
 
-require 'ripper18/core'
+require 'ripper/core'
 
 class Ripper
 
