@@ -32,7 +32,7 @@ error "gperf generated tables don't work with this execution character set. Plea
 
 struct kwtable {const char *name; int id[2]; enum lex_state_e state;};
 const struct kwtable *rb_reserved_word(const char *, unsigned int);
-#ifndef RIPPER
+#ifdef RIPPER
 static const struct kwtable *reserved_word(const char *, unsigned int);
 #define rb_reserved_word(str, len) reserved_word(str, len)
 #line 9 "defs/keywords"

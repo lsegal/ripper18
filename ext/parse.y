@@ -238,6 +238,17 @@ struct parser_params {
 
     int parser_yydebug;
 
+#ifndef RIPPER
+    /* Ruby core only */
+    NODE *parser_eval_tree_begin;
+    NODE *parser_eval_tree;
+    VALUE debug_lines;
+    VALUE coverage;
+    int nerr;
+
+    token_info *parser_token_info;
+#else
+    /* Ripper only */
     VALUE parser_ruby_sourcefile_string;
     const char *tokp;
     VALUE delayed;
@@ -248,6 +259,7 @@ struct parser_params {
     VALUE result;
     VALUE parsing_thread;
     int toplevel_p;
+#endif
 };
 
 #define UTF8_ENC() (parser->utf8 ? parser->utf8 : \
@@ -644,6 +656,7 @@ static void token_info_pop(struct parser_params*, const char *token);
 	keyword_do
 	keyword_do_cond
 	keyword_do_block
+	keyword_do_LAMBDA
 	keyword_return
 	keyword_yield
 	keyword_super
@@ -666,7 +679,6 @@ static void token_info_pop(struct parser_params*, const char *token);
 	keyword__LINE__
 	keyword__FILE__
 	keyword__ENCODING__
-	keyword_do_LAMBDA
 
 %token <id>   tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
 %token <node> tINTEGER tFLOAT tSTRING_CONTENT tCHAR
@@ -2933,7 +2945,6 @@ primary		: literal
 		    }
 		| k_def fname
 		    {
-			lex_state = EXPR_ENDFN; /* force for args */
 			$<id>$ = cur_mid;
 			cur_mid = $2;
 			in_def++;
@@ -3078,7 +3089,6 @@ k_module	: keyword_module
 
 k_def		: keyword_def
 		    {
-			lex_state = EXPR_FNAME;
 			token_info_push("def");
 		    /*%%%*/
 			$<num>$ = ruby_sourceline;
@@ -7253,7 +7263,7 @@ parser_yylex(struct parser_params *parser)
 	    lex_state = EXPR_DOT;
 	    return tCOLON2;
 	}
-	if (ISSPACE(c)) {
+	if (IS_END() || ISSPACE(c)) {
 	    pushback(c);
 	    warn_balanced(":", "symbol literal");
 	    lex_state = EXPR_BEG;
