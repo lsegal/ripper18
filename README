@@ -1,5 +1,5 @@
-Ripper18 README
-================
+Ripper README
+=============
 
   ** This is Ripper compiled for Ruby 1.8.x **
 
@@ -25,3 +25,7 @@ License
                                                 Minero Aoki
                                         aamine@loveruby.net
                                       http://i.loveruby.net
+                                        
+                                         Ported to 1.8.x by
+                                                Loren Segal
+                                            http://gnuu.org

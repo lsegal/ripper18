@@ -4,7 +4,7 @@ SPEC = Gem::Specification.new do |s|
   s.description   = <<-eof
     This gem is meant for Ruby 1.8.x builds. Ruby 1.9.x comes with a functioning
     ripper implementation out of the box. This gem is a port of the Ripper 1.9
-    for Ruby 1.8.x.
+    for Ruby 1.8.x. Ripper was written by Minero Aoki and ported by Loren Segal.
   eof
   s.version       = "1.0.0"
   s.date          = "2011-01-11"
