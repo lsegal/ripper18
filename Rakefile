@@ -5,7 +5,8 @@ WINDOWS = (PLATFORM =~ /win32|cygwin/ ? true : false) rescue false
 SUDO = WINDOWS ? '' : 'sudo'
 
 desc "Builds the gem"
-task :gem => :build do
+task :gem do
+  sh "cd ext && make clean"
   load 'ripper.gemspec'
   Gem::Builder.new(SPEC).build
 end
