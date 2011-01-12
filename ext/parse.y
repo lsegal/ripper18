@@ -2933,6 +2933,7 @@ primary		: literal
 		    }
 		| k_def fname
 		    {
+			lex_state = EXPR_ENDFN; /* force for args */
 			$<id>$ = cur_mid;
 			cur_mid = $2;
 			in_def++;
@@ -3077,6 +3078,7 @@ k_module	: keyword_module
 
 k_def		: keyword_def
 		    {
+			lex_state = EXPR_FNAME;
 			token_info_push("def");
 		    /*%%%*/
 			$<num>$ = ruby_sourceline;
