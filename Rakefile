@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'rake/gempackagetask'
+require 'rake/testtask'
 
 WINDOWS = (PLATFORM =~ /win32|cygwin/ ? true : false) rescue false
 SUDO = WINDOWS ? '' : 'sudo'
@@ -20,3 +21,6 @@ desc 'Build the extension'
 task :build do
   sh "cd ext && ruby extconf.rb && make clean && make"
 end
+
+Rake::TestTask.new
+
