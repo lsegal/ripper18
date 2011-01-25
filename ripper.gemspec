@@ -6,7 +6,7 @@ SPEC = Gem::Specification.new do |s|
     ripper implementation out of the box. This gem is a port of the Ripper 1.9
     for Ruby 1.8.x. Ripper was written by Minero Aoki and ported by Loren Segal.
   eof
-  s.version       = "1.0.0"
+  s.version       = "1.0.1"
   s.date          = "2011-01-11"
   s.authors       = ["Loren Segal", "Minero Aoki"]
   s.email         = "lsegal@soen.ca"
@@ -15,4 +15,5 @@ SPEC = Gem::Specification.new do |s|
   s.require_paths = ['lib', 'ext']
   s.extensions    = ['ext/extconf.rb']
   s.has_rdoc      = false
+  s.required_ruby_version = '~> 1.8.7'
 end
