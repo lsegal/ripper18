@@ -15,7 +15,7 @@
 #define YYERROR_VERBOSE 1
 #define YYSTACK_USE_ALLOCA 0
 
-#include "ruby/ruby.h"
+#include "ruby.h"
 #include "ruby/st.h"
 #include "ruby/encoding.h"
 #include "node.h"
