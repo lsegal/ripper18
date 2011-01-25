@@ -7,7 +7,7 @@ SPEC = Gem::Specification.new do |s|
     for Ruby 1.8.x. Ripper was written by Minero Aoki and ported by Loren Segal.
   eof
   s.version       = "1.0.1"
-  s.date          = "2011-01-11"
+  s.date          = "2011-01-24"
   s.authors       = ["Loren Segal", "Minero Aoki"]
   s.email         = "lsegal@soen.ca"
   s.homepage      = "http://github.com/lsegal/ripper"
