@@ -33,6 +33,7 @@ int rb_char_to_option_kcode(int c, int *option, int *kcode) { return 0; }
 #define rb_external_str_new_with_enc(s,l,e) rb_str_new(s,l)
 #define rb_enc_from_index(idx) __default_encoding
 #define rb_enc_find(name) __default_encoding
+#define rb_enc_find_index(name) 1
 #define rb_enc_name(enc) (enc)->name
 #define rb_enc_mbminlen(enc) (enc)->min_enc_len
 #define rb_enc_mbmaxlen(enc) (enc)->max_enc_len
