@@ -7,7 +7,7 @@ SUDO = WINDOWS ? '' : 'sudo'
 
 desc "Builds the gem"
 task :gem do
-  sh "cd ext && make clean"
+  sh "cd ext; make clean; rm Makefile; echo"
   load 'ripper.gemspec'
   Gem::Builder.new(SPEC).build
 end
