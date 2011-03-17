@@ -22,7 +22,8 @@ typedef struct rb_encoding_s {
 
 static rb_encoding __default_encoding_s = {1, 1, "default"};
 static rb_encoding *__default_encoding = &__default_encoding_s;
-int rb_char_to_option_kcode(int c, int *option, int *kcode) { return 0; }
+int rb_char_to_option_kcode(int c, int *option, int *kcode) { *option=0; *kcode=-1; return 0; }
+int __default_rb_enc_mbcput(int c, char *p, rb_encoding *enc) { do *p++ = (char) (c & 0xff); while (c >> 8); return c; }
 
 #define ENC_CODERANGE_7BIT 0
 #define ENC_CODERANGE_UNKNOWN -1
@@ -38,6 +39,8 @@ int rb_char_to_option_kcode(int c, int *option, int *kcode) { return 0; }
 #define rb_enc_mbminlen(enc) (enc)->min_enc_len
 #define rb_enc_mbmaxlen(enc) (enc)->max_enc_len
 #define rb_enc_mbclen(p,e,enc) 1
+#define rb_enc_codelen(c,enc)  (((c) & 0xffffff00) ? ((c) & 0xffff0000) ? ((c) & 0xff000000) ? 4 : 3 : 2 : 1)
+#define rb_enc_mbcput(c,p,enc) __default_rb_enc_mbcput(c,(void*)p,enc)
 #define rb_enc_fast_mbclen(p,e,enc) 1
 #define rb_enc_isascii(c,enc) isascii(c)
 #define rb_enc_isalpha(c,enc) isalpha(c)
@@ -54,6 +57,7 @@ int rb_char_to_option_kcode(int c, int *option, int *kcode) { return 0; }
 #define rb_enc_from_encoding(e) Qnil
 #define rb_enc_precise_mbclen(s,l,e) 1
 #define rb_enc_unicode_p(e) 0
+#define rb_ascii8bit_encindex(e) 1
 #define rb_ascii8bit_encoding() __default_encoding
 #define rb_utf8_encoding() __default_encoding
 #define rb_usascii_encoding() __default_encoding
