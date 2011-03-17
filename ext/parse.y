@@ -16,7 +16,7 @@
 #define YYSTACK_USE_ALLOCA 0
 
 #include "ruby.h"
-#include "ruby/st.h"
+#include "st.h"
 #include "ruby/encoding.h"
 #include "node.h"
 #include "parse.h"
@@ -4903,8 +4903,8 @@ ripper_dispatch_delayed_token(struct parser_params *parser, int t)
 }
 #endif /* RIPPER */
 
-#include "ruby/regex.h"
-#include "ruby/util.h"
+#include "regex.h"
+#include "util.h"
 
 /* We remove any previous definition of `SIGN_EXTEND_CHAR',
    since ours (we hope) works properly with all combinations of
