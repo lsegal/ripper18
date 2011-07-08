@@ -3936,7 +3936,11 @@ words		: tWORDS_BEG ' ' tSTRING_END
 		    }
 		| tWORDS_BEG word_list tSTRING_END
 		    {
+		    /*%%%*/
 			$$ = $2;
+		    /*%
+			$$ = dispatch1(array, $2);
+		    %*/
 		    }
 		;
 
@@ -3986,7 +3990,11 @@ qwords		: tQWORDS_BEG ' ' tSTRING_END
 		    }
 		| tQWORDS_BEG qword_list tSTRING_END
 		    {
+    		    /*%%%*/
 			$$ = $2;
+    		    /*%
+			$$ = dispatch1(array, $2);
+    		    %*/
 		    }
 		;
 
