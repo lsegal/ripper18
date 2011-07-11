@@ -432,6 +432,8 @@ static ID ripper_get_id(VALUE);
 #define get_id(id) ripper_get_id(id)
 static VALUE ripper_get_value(VALUE);
 #define get_value(val) ripper_get_value(val)
+static int id_is_var_gen(struct parser_params *parser, ID id);
+#define id_is_var(id) id_is_var_gen(parser, (id))
 static VALUE assignable_gen(struct parser_params*,VALUE);
 #define assignable(lhs,node) assignable_gen(parser, lhs)
 #endif /* !RIPPER */
@@ -705,7 +707,7 @@ static void token_info_pop(struct parser_params*, const char *token);
 %type <node> lambda f_larglist lambda_body
 %type <node> brace_block cmd_brace_block do_block lhs none fitem
 %type <node> mlhs mlhs_head mlhs_basic mlhs_item mlhs_node mlhs_post mlhs_inner
-%type <id>   fsym variable sym symbol operation operation2 operation3
+%type <id>   fsym keyword_variable user_variable sym symbol operation operation2 operation3
 %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
 /*%%%*/
 /*%
@@ -1051,7 +1053,7 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 			NODE *resq = NEW_RESBODY(0, remove_begin($3), 0);
 			$$ = NEW_RESCUE(remove_begin($1), resq, 0);
 		    /*%
-			$$ = dispatch2(rescue_mod, $3, $1);
+			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
 		    }
 		| keyword_END '{' compstmt '}'
@@ -1501,7 +1503,8 @@ mlhs_basic	: mlhs_head
 		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG(-1, $4));
 		    /*%
-			$$ = mlhs_add_star($1, Qnil);
+			$1 = mlhs_add_star($1, Qnil);
+			$$ = mlhs_add($1, $4);
 		    %*/
 		    }
 		| tSTAR mlhs_node
@@ -1517,7 +1520,8 @@ mlhs_basic	: mlhs_head
 		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG($2,$4));
 		    /*%
-			$$ = mlhs_add_star(mlhs_new(), $2);
+			$2 = mlhs_add_star(mlhs_new(), $2);
+			$$ = mlhs_add($2, $4);
 		    %*/
 		    }
 		| tSTAR
@@ -1534,6 +1538,7 @@ mlhs_basic	: mlhs_head
 			$$ = NEW_MASGN(0, NEW_POSTARG(-1, $3));
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
+			$$ = mlhs_add($$, $3);
 		    %*/
 		    }
 		;
@@ -1585,9 +1590,13 @@ mlhs_post	: mlhs_item
 		    }
 		;
 
-mlhs_node	: variable
+mlhs_node	: user_variable
 		    {
 			$$ = assignable($1, 0);
+		    }
+		| keyword_variable
+		    {
+		        $$ = assignable($1, 0);
 		    }
 		| primary_value '[' opt_call_args rbracket
 		    {
@@ -1655,13 +1664,22 @@ mlhs_node	: variable
 		    }
 		;
 
-lhs		: variable
+lhs		: user_variable
 		    {
 			$$ = assignable($1, 0);
 		    /*%%%*/
 			if (!$$) $$ = NEW_BEGIN(0);
 		    /*%
 			$$ = dispatch1(var_field, $$);
+		    %*/
+		    }
+		| keyword_variable
+		    {
+		        $$ = assignable($1, 0);
+		    /*%%%*/
+		        if (!$$) $$ = NEW_BEGIN(0);
+		    /*%
+		        $$ = dispatch1(var_field, $$);
 		    %*/
 		    }
 		| primary_value '[' opt_call_args rbracket
@@ -3933,7 +3951,11 @@ words		: tWORDS_BEG ' ' tSTRING_END
 		    }
 		| tWORDS_BEG word_list tSTRING_END
 		    {
+		    /*%%%*/
 			$$ = $2;
+		    /*%
+			$$ = dispatch1(array, $2);
+		    %*/
 		    }
 		;
 
@@ -3983,7 +4005,11 @@ qwords		: tQWORDS_BEG ' ' tSTRING_END
 		    }
 		| tQWORDS_BEG qword_list tSTRING_END
 		    {
+    		    /*%%%*/
 			$$ = $2;
+    		    /*%
+			$$ = dispatch1(array, $2);
+    		    %*/
 		    }
 		;
 
@@ -4215,12 +4241,14 @@ numeric 	: tINTEGER
 		    }
 		;
 
-variable	: tIDENTIFIER
+user_variable	: tIDENTIFIER
 		| tIVAR
 		| tGVAR
 		| tCONSTANT
 		| tCVAR
-		| keyword_nil {ifndef_ripper($$ = keyword_nil);}
+		;
+		
+keyword_variable: keyword_nil {ifndef_ripper($$ = keyword_nil);}
 		| keyword_self {ifndef_ripper($$ = keyword_self);}
 		| keyword_true {ifndef_ripper($$ = keyword_true);}
 		| keyword_false {ifndef_ripper($$ = keyword_false);}
@@ -4229,22 +4257,43 @@ variable	: tIDENTIFIER
 		| keyword__ENCODING__ {ifndef_ripper($$ = keyword__ENCODING__);}
 		;
 
-var_ref		: variable
+var_ref		: user_variable
 		    {
 		    /*%%%*/
 			if (!($$ = gettable($1))) $$ = NEW_BEGIN(0);
 		    /*%
-			$$ = dispatch1(var_ref, $1);
+			if (id_is_var(get_id($1))) {
+			    $$ = dispatch1(var_ref, $1);
+			}
+			else {
+			    $$ = dispatch1(vcall, $1);
+			}
+		    %*/
+		    }
+		| keyword_variable
+		    {
+		    /*%%%*/
+		        if (!($$ = gettable($1))) $$ = NEW_BEGIN(0);
+		    /*%
+		        $$ = dispatch1(var_ref, $1);
 		    %*/
 		    }
 		;
 
-var_lhs		: variable
+var_lhs		: user_variable
 		    {
 			$$ = assignable($1, 0);
 		    /*%%%*/
 		    /*%
 			$$ = dispatch1(var_field, $$);
+		    %*/
+		    }
+		| keyword_variable
+		    {
+		        $$ = assignable($1, 0);
+		    /*%%%*/
+		    /*%
+		        $$ = dispatch1(var_field, $$);
 		    %*/
 		    }
 		;
@@ -8142,6 +8191,24 @@ gettable_gen(struct parser_params *parser, ID id)
     }
     else if (is_class_id(id)) {
 	return NEW_CVAR(id);
+    }
+    compile_error(PARSER_ARG "identifier %s is not valid to get", rb_id2name(id));
+    return 0;
+}
+#else  /* !RIPPER */
+static int
+id_is_var_gen(struct parser_params *parser, ID id)
+{
+    if (is_notop_id(id)) {
+	switch (id & ID_SCOPE_MASK) {
+	  case ID_GLOBAL: case ID_INSTANCE: case ID_CONST: case ID_CLASS:
+	    return 1;
+	  case ID_LOCAL:
+	    if (dyna_in_block() && dvar_defined(id)) return 1;
+	    if (local_id(id)) return 1;
+	    /* method call without arguments */
+	    return 0;
+	}
     }
     compile_error(PARSER_ARG "identifier %s is not valid to get", rb_id2name(id));
     return 0;
