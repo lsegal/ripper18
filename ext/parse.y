@@ -16,7 +16,7 @@
 #define YYSTACK_USE_ALLOCA 0
 
 #include "ruby.h"
-#include "ruby/st.h"
+#include "st.h"
 #include "ruby/encoding.h"
 #include "node.h"
 #include "parse.h"
@@ -28,6 +28,18 @@
 
 #define numberof(array) (int)(sizeof(array) / sizeof((array)[0]))
 
+#ifdef RIPPER
+
+#define YYMALLOC(size)		xmalloc(size)
+#define YYREALLOC(ptr, size)	xrealloc(ptr, size)
+#define YYCALLOC(nelem, size)	xcalloc(nelem, size)
+#define YYFREE(ptr)		xfree(ptr)
+#define malloc	YYMALLOC
+#define realloc	YYREALLOC
+#define calloc	YYCALLOC
+#define free	YYFREE
+
+#else
 #define YYMALLOC(size)		rb_parser_malloc(parser, size)
 #define YYREALLOC(ptr, size)	rb_parser_realloc(parser, ptr, size)
 #define YYCALLOC(nelem, size)	rb_parser_calloc(parser, nelem, size)
@@ -37,7 +49,6 @@
 #define calloc	YYCALLOC
 #define free	YYFREE
 
-#ifndef RIPPER
 static ID register_symid(ID, const char *, long, rb_encoding *);
 #define REGISTER_SYMID(id, name) register_symid(id, name, strlen(name), enc)
 #include "id.c"
@@ -270,6 +281,9 @@ struct parser_params {
 #define STR_NEW3(p,n,e,func) parser_str_new((p),(n),(e),(func),parser->enc)
 #define ENC_SINGLE(cr) ((cr)==ENC_CODERANGE_7BIT)
 #define TOK_INTERN(mb) rb_intern3(tok(), toklen(), parser->enc)
+#ifdef RIPPER
+#define rb_str_new_cstr	rb_str_new2
+#endif
 
 #ifdef YYMALLOC
 void *rb_parser_malloc(struct parser_params *, size_t);
@@ -4952,8 +4966,8 @@ ripper_dispatch_delayed_token(struct parser_params *parser, int t)
 }
 #endif /* RIPPER */
 
-#include "ruby/regex.h"
-#include "ruby/util.h"
+#include "regex.h"
+#include "util.h"
 
 /* We remove any previous definition of `SIGN_EXTEND_CHAR',
    since ours (we hope) works properly with all combinations of

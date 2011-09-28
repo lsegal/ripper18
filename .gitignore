@@ -6,6 +6,8 @@ ripper.o
 ripper.y
 ripper.c
 ripper.E
+ripper.so
+ripper.dll
 ripper.bundle
 ids1
 ids2
