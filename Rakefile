@@ -2,12 +2,12 @@ require 'rubygems'
 require 'rake/gempackagetask'
 require 'rake/testtask'
 
-WINDOWS = (PLATFORM =~ /win32|cygwin/ ? true : false) rescue false
+WINDOWS = (PLATFORM =~ /mingw|win32|cygwin/ ? true : false) rescue false
 SUDO = WINDOWS ? '' : 'sudo'
 
 desc "Builds the gem"
 task :gem do
-  sh "cd ext; make clean; rm Makefile; echo"
+  sh "cd ext && make clean && rm -f Makefile" and puts if File.exists? './ext/Makefile'
   load 'ripper.gemspec'
   Gem::Builder.new(SPEC).build
 end
